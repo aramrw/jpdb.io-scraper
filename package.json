@@ -1,0 +1,15 @@
+{
+  "name": "jpdb-scraper",
+  "version": "1.0.0",
+  "description": "Scrapes jpdb.io for frequency data.",
+  "main": "scraper.js",
+  "scripts": {
+    "start": "node scraper.js"
+  },
+  "keywords": [],
+  "author": "aramrw",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^21.0.3"
+  }
+}
