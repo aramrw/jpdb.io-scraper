@@ -9,12 +9,14 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+
 (async () => {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
 
     // Prompt the user for input
     rl.question('Please enter the novel or anime title: ', async (searchQuery) => {
+
         // Navigate to jpdb.io
         await page.goto('https://jpdb.io/prebuilt_decks');
 
@@ -85,29 +87,39 @@ const rl = readline.createInterface({
                                 if (anchorLink.includes(modifiedSelectedAnime)) {
                                     anchorLinkFound = true;
 
+                                    // Enter a search offset  
                                     rl.question('Please enter search offset: ', async (vocabOffset) => {
                                         vocabListLink = anchorLink.toString() + `/vocabulary-list?offset=${vocabOffset}&sort_by=by-frequency-global`;
                                         await page.goto(`https://jpdb.io${vocabListLink}`);
                                         console.log(`Frequency link of ${selectedAnime} found.\n`);
+
+                                        //Enter amount of pages to scrape 
                                         
                                         // TODO: scrape frequency data
-                                    await page.waitForXPath('//ruby');
+                                        await page.waitForXPath('//ruby');      
 
                                         // Get list of ruby words
                                         const rubyWords = await page.evaluate(() => {
-                                        const nameElements = document.querySelectorAll('ruby');
-                                        return Array.from(nameElements, element => element.textContent.trim());
-                                    });
-                                        if(rubyWords == "" || rubyWords == null){
-                                            console.log(`Invalid offset amount: ${rubyWords}`);
-                                        }else{
-                                             // Write rubyWords to a text file
-                                            const outputFilePath = "ruby_words.txt"
-                                            fs.writeFileSync(outputFilePath, rubyWords.join('\n'), { encoding: 'utf-8' });
-                                            
+                                            const anchorElements = document.querySelectorAll('a[href^="/vocabulary/"][href$="#a"]');
+                                            return Array.from(anchorElements, element => {
+                                            const href = element.getAttribute('href');
+                                        
+                                            const parts = href.split('/');
+                                            // Get the second-to-last part
+                                            const kanji = href.substring(href.lastIndexOf('/') + 1, href.length - 2); // Remove last 2 characters (#a) 
+                                            return kanji;
+                                            });
+                                        });
+                                        writeKanji(rubyWords);
 
-                                            console.log(`Ruby words written to ${outputFilePath}`);
-                                        }
+                                        // press the next button by finding the anchor tag with the text "Next page" in it"
+
+                                        // scrape the page again
+
+                                        // Write the kanji again and repeat until however many pages the user said
+
+                                   
+                                    console.log(`Kanji words written.`);
                                        
                                     })
                                     
@@ -139,3 +151,13 @@ const rl = readline.createInterface({
 
     });
 })();
+
+async function writeKanji(rubyWords){
+    if (rubyWords.length === 0) {
+        console.log(`Invalid offset amount: ${rubyWords}`);
+    } else {
+            // Write rubyWords to a text file
+            const outputFilePath = "kanji_words.txt";
+            fs.writeFileSync(outputFilePath, rubyWords.join('\n')); 
+    }
+}
