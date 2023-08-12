@@ -12,7 +12,9 @@ const rl = readline.createInterface({
 
 
 (async () => {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        headless: 'old',
+    });
     const page = await browser.newPage();
 
     // Prompt the user for input
@@ -66,8 +68,8 @@ const rl = readline.createInterface({
                 if (selectedIndex >= 0 && selectedIndex < matchingAnime.length) {
                     const selectedAnime = matchingAnime[selectedIndex];
                     console.log(`You selected: ${selectedAnime}.\n`);
-
                     // Wait for anchor links 
+
                     await page.waitForXPath('/html/body/div/div/div/div/div/a');
 
                     // Get the list of anchor links
@@ -90,13 +92,17 @@ const rl = readline.createInterface({
 
                                     // Enter a search offset + pages
                                     rl.question('Please enter search offset divisible by 50: ', async (vocabOffset) => {
-                                        rl.question('Please # of enter pages to scrape: ', async (pageAmount) => {
+                                        rl.question('Please # of enter pages to scrape:', async (pageAmount) => {
                                             const newVocabOffset = Number(vocabOffset);
                                             const totalPages = Math.min(Number(pageAmount), 100);
+                                            let pageTracker = 0;
                                     
                                             for (let i = 1; i <= totalPages; i++) {
-                                                scrapePage(anchorLink, selectedAnime, newVocabOffset + (i - 1) * 50);
+                                                await scrapePage(anchorLink, selectedAnime, newVocabOffset + (i - 1) * 50);
+                                                pageTracker++;
+                                                console.log(`${pageTracker} of ${totalPages}`);
                                             }
+                                                console.log(`Successfully scraped all ${pageTracker} pages.`);
                                             }                                                                                                                                                                         
                                         )
                                     })
@@ -130,42 +136,61 @@ const rl = readline.createInterface({
 })();
 
 
-async function scrapePage(anchorLink, selectedAnime, newVocabOffset){
-
-    // open puppeteer
-    const browser = await puppeteer.launch();
+async function scrapePage(anchorLink, selectedAnime, newVocabOffset) {
+    const browser = await puppeteer.launch({
+        headless: 'old',
+    });
     const page = await browser.newPage();
 
     let vocabListLink = anchorLink.toString() + `/vocabulary-list?offset=${newVocabOffset}&sort_by=by-frequency-global`;
     await page.goto(`https://jpdb.io${vocabListLink}`);
-    console.log(`Frequency link of ${selectedAnime} found.\n`);
-    //console.log(`${newVocabOffset}`);
 
-    //Enter amount of pages to scrape 
-    // TODO: scrape frequency data
-    await page.waitForXPath('//ruby');      
+        // Check if current page contains a Next Page button
+    const nextPage = await page.evaluate(() => {
+        const nextPageElements = document.querySelectorAll('a');
+        return Array.from(nextPageElements, element => element.textContent.toLowerCase());
+    });
+
+    let hasNextPage = false;
+    
+    for (const text of nextPage) {
+        //console.log(text)
+        if (text.includes('next')) {
+            hasNextPage = true;
+            break;
+        }
+    }
+
+    if (!(hasNextPage)) {
+        console.log("No next button!\n");
+        await browser.close();
+        process.exit();
+    }
 
     // Get list of ruby words
+    await page.waitForXPath('//ruby');
     const rubyWords = await page.evaluate(() => {
         const anchorElements = document.querySelectorAll('a[href^="/vocabulary/"][href$="#a"]');
         return Array.from(anchorElements, element => {
-        const href = element.getAttribute('href');
+            const href = element.getAttribute('href');
     
-        const parts = href.split('/');
-        // Get the second-to-last part
-        const kanji = href.substring(href.lastIndexOf('/') + 1, href.length - 2); // Remove last 2 characters (#a) 
-        return kanji;
+            const parts = href.split('/');
+            // Get the second-to-last part
+            const kanji = href.substring(href.lastIndexOf('/') + 1, href.length - 2); // Remove last 2 characters (#a) 
+            return kanji;
         });
     });
-    
-    if (rubyWords.length === 0 ||rubyWords == null) {
+
+    if (rubyWords.length === 0 || rubyWords == null) {
         console.log(`Invalid offset amount: ${rubyWords}`);
-    
     } else {
-        console.log(rubyWords);
+        //console.log(rubyWords);
         writeKanji(rubyWords);
     }
+
+    await browser.close();
 }
+
 
 async function writeKanji(rubyWords) {
     if (rubyWords.length === 0) {
@@ -179,7 +204,7 @@ async function writeKanji(rubyWords) {
             const outputFilePath = "kanji_words.txt";
             await fs.promises.appendFile(outputFilePath, newData);
 
-            console.log(`Kanji words appended to ${outputFilePath}`);
+            //console.log(``);
         } catch (error) {
             console.error(`Error writing to file: ${error}`);
         }
