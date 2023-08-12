@@ -3,6 +3,7 @@ const puppeteer = require('puppeteer');
 const readline = require('readline');
 const { arrayBuffer } = require('stream/consumers');
 const fs = require('fs');
+process.setMaxListeners(50); // You can adjust the number based on your needs
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -90,26 +91,15 @@ const rl = readline.createInterface({
                                     // Enter a search offset + pages
                                     rl.question('Please enter search offset divisible by 50: ', async (vocabOffset) => {
                                         rl.question('Please # of enter pages to scrape: ', async (pageAmount) => {
-
-                                            switch (Number(pageAmount)) {
-                                                case 1: 
-                                                await scrapePage(anchorLink, selectedAnime, vocabOffset);
-                                                break;
-                                                case 2: 
-                                                await scrapePage(anchorLink, selectedAnime, vocabOffset);
-                                                vocabOffset = Number(vocabOffset) + 50;
-                                                await scrapePage(anchorLink, selectedAnime, vocabOffset);
-                                                break;
-                                                default: 
-                                                console.log("Broken!");
-                                            }
-
-                                            
-                                        })
-                                       
-                                    })
-
+                                            const newVocabOffset = Number(vocabOffset);
+                                            const totalPages = Math.min(Number(pageAmount), 100);
                                     
+                                            for (let i = 1; i <= totalPages; i++) {
+                                                scrapePage(anchorLink, selectedAnime, newVocabOffset + (i - 1) * 50);
+                                            }
+                                            }                                                                                                                                                                         
+                                        )
+                                    })
                                 }else{
                                     if(anchorLinkFound = false){
                                         console.log(`Anchor link for ${modifiedSelectedAnime} not found!\n`);
@@ -139,25 +129,17 @@ const rl = readline.createInterface({
     });
 })();
 
-async function writeKanji(rubyWords){
-    if (rubyWords.length === 0) {
-        console.log(`Invalid offset amount: ${rubyWords}`);
-    } else {
-            // Write rubyWords to a text file
-            const outputFilePath = "kanji_words.txt";
-            fs.writeFileSync(outputFilePath, rubyWords.join('\n')); 
-    }
-}
 
-async function scrapePage(anchorLink, selectedAnime, vocabOffset, pageAmount){
+async function scrapePage(anchorLink, selectedAnime, newVocabOffset){
 
     // open puppeteer
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
 
-    vocabListLink = anchorLink.toString() + `/vocabulary-list?offset=${vocabOffset}&sort_by=by-frequency-global`;
+    let vocabListLink = anchorLink.toString() + `/vocabulary-list?offset=${newVocabOffset}&sort_by=by-frequency-global`;
     await page.goto(`https://jpdb.io${vocabListLink}`);
     console.log(`Frequency link of ${selectedAnime} found.\n`);
+    //console.log(`${newVocabOffset}`);
 
     //Enter amount of pages to scrape 
     // TODO: scrape frequency data
@@ -175,9 +157,32 @@ async function scrapePage(anchorLink, selectedAnime, vocabOffset, pageAmount){
         return kanji;
         });
     });
-    writeKanji(rubyWords);
-
-console.log(`Kanji words written.`);
-   
+    
+    if (rubyWords.length === 0 ||rubyWords == null) {
+        console.log(`Invalid offset amount: ${rubyWords}`);
+    
+    } else {
+        console.log(rubyWords);
+        writeKanji(rubyWords);
+    }
 }
- 
+
+async function writeKanji(rubyWords) {
+    if (rubyWords.length === 0) {
+        console.log(`No kanji words to write.`);
+    } else {
+        try {
+            // Prepare the data to be appended with a newline
+            const newData = rubyWords.join('\n') + '\n';
+
+            // Append the data to the file asynchronously
+            const outputFilePath = "kanji_words.txt";
+            await fs.promises.appendFile(outputFilePath, newData);
+
+            console.log(`Kanji words appended to ${outputFilePath}`);
+        } catch (error) {
+            console.error(`Error writing to file: ${error}`);
+        }
+    }
+}
+
