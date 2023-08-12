@@ -82,46 +82,33 @@ const rl = readline.createInterface({
                     for (const anchorLink of anchorLinks) {
                             if(!(anchorLink.includes("/stats")) && anchorLink.includes(modifiedSelectedAnime)){
                                 skipCounter++;
-
                                 // console.log(anchorLink); Check anchor url
                                 if (anchorLink.includes(modifiedSelectedAnime)) {
                                     anchorLinkFound = true;
+                                    await browser.close();
 
-                                    // Enter a search offset  
-                                    rl.question('Please enter search offset: ', async (vocabOffset) => {
-                                        vocabListLink = anchorLink.toString() + `/vocabulary-list?offset=${vocabOffset}&sort_by=by-frequency-global`;
-                                        await page.goto(`https://jpdb.io${vocabListLink}`);
-                                        console.log(`Frequency link of ${selectedAnime} found.\n`);
+                                    // Enter a search offset + pages
+                                    rl.question('Please enter search offset divisible by 50: ', async (vocabOffset) => {
+                                        rl.question('Please # of enter pages to scrape: ', async (pageAmount) => {
 
-                                        //Enter amount of pages to scrape 
-                                        
-                                        // TODO: scrape frequency data
-                                        await page.waitForXPath('//ruby');      
+                                            switch (Number(pageAmount)) {
+                                                case 1: 
+                                                await scrapePage(anchorLink, selectedAnime, vocabOffset);
+                                                break;
+                                                case 2: 
+                                                await scrapePage(anchorLink, selectedAnime, vocabOffset);
+                                                vocabOffset = Number(vocabOffset) + 50;
+                                                await scrapePage(anchorLink, selectedAnime, vocabOffset);
+                                                break;
+                                                default: 
+                                                console.log("Broken!");
+                                            }
 
-                                        // Get list of ruby words
-                                        const rubyWords = await page.evaluate(() => {
-                                            const anchorElements = document.querySelectorAll('a[href^="/vocabulary/"][href$="#a"]');
-                                            return Array.from(anchorElements, element => {
-                                            const href = element.getAttribute('href');
-                                        
-                                            const parts = href.split('/');
-                                            // Get the second-to-last part
-                                            const kanji = href.substring(href.lastIndexOf('/') + 1, href.length - 2); // Remove last 2 characters (#a) 
-                                            return kanji;
-                                            });
-                                        });
-                                        writeKanji(rubyWords);
-
-                                        // press the next button by finding the anchor tag with the text "Next page" in it"
-
-                                        // scrape the page again
-
-                                        // Write the kanji again and repeat until however many pages the user said
-
-                                   
-                                    console.log(`Kanji words written.`);
+                                            
+                                        })
                                        
                                     })
+
                                     
                                 }else{
                                     if(anchorLinkFound = false){
@@ -161,3 +148,36 @@ async function writeKanji(rubyWords){
             fs.writeFileSync(outputFilePath, rubyWords.join('\n')); 
     }
 }
+
+async function scrapePage(anchorLink, selectedAnime, vocabOffset, pageAmount){
+
+    // open puppeteer
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    vocabListLink = anchorLink.toString() + `/vocabulary-list?offset=${vocabOffset}&sort_by=by-frequency-global`;
+    await page.goto(`https://jpdb.io${vocabListLink}`);
+    console.log(`Frequency link of ${selectedAnime} found.\n`);
+
+    //Enter amount of pages to scrape 
+    // TODO: scrape frequency data
+    await page.waitForXPath('//ruby');      
+
+    // Get list of ruby words
+    const rubyWords = await page.evaluate(() => {
+        const anchorElements = document.querySelectorAll('a[href^="/vocabulary/"][href$="#a"]');
+        return Array.from(anchorElements, element => {
+        const href = element.getAttribute('href');
+    
+        const parts = href.split('/');
+        // Get the second-to-last part
+        const kanji = href.substring(href.lastIndexOf('/') + 1, href.length - 2); // Remove last 2 characters (#a) 
+        return kanji;
+        });
+    });
+    writeKanji(rubyWords);
+
+console.log(`Kanji words written.`);
+   
+}
+ 
