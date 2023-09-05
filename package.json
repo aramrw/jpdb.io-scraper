@@ -1,15 +1,17 @@
 {
-  "name": "jpdb-scraper",
+  "name": "jpdb-scraper-2",
   "version": "1.0.0",
-  "description": "Scrapes jpdb.io for frequency data.",
+  "description": "",
   "main": "scraper.js",
+  "type": "module",
   "scripts": {
-    "start": "node scraper.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "aramrw",
+  "author": "",
   "license": "ISC",
   "dependencies": {
-    "puppeteer": "^21.0.3"
+    "chalk": "^5.3.0",
+    "puppeteer": "^21.1.1"
   }
 }
