@@ -1,11 +1,11 @@
 ### jpdb.io-scraper
-Sc#apes jpdb.io for kanji based on jpdb's frequency data and user needs.
+# Scrapes [jpdb.io](https://jpdb.io/) for kanji based on **jpdb's frequency data** and user needs.
 
 # What's it all about?
 
 📚 **Vocabulary from Your Favorites:** Do you have trouble picking out words that are useful for you at _your level_ of japanese ability? Or have you evered wished you could grab all the useful words from a series but don't feel like sitting through it? 
 
-🤖 **Automatic Scraping:** Say goodbye to manual word hunting. It automatically extracts and compiles the words you need to know from your chosen **anime** / **light novel** / **web novel** _(only if it exists on jdpb.io)_.
+🤖 **Automatic Scraping:** Say goodbye to manual word hunting. It automatically extracts and compiles the words you need to know from your chosen **anime** / **light novel** / **web novel** _(only if it exists on [jpdb.io](https://jpdb.io/)_.
 
 🔝 **Frequency Insights:** Wondering which words are super common? It has you covered with frequency analysis. Discover the must-know words that'll level up your Japanese.
 
