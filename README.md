@@ -1,10 +1,9 @@
 # jpdb.io-scraper
-Scrapes jpdb.io for kanji based on jpdb's frequency data.
+Scrapes jpdb.io for kanji based on jpdb's frequency data and user needs.
 
-Max pages - 50
+Max pages - ???
 
-/ Works with all web novels (?) 
-/ Anime + regular novels (some don't work due to how jpdb sorts their titles) 
+/ Works with anything on jpdb.io ~ all web novels + anime + regular novels ~ 
 / + other titles on the site.
 
-Only works with node
+Only works with node / no cmd terminal yet
