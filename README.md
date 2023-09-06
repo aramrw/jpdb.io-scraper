@@ -1,5 +1,5 @@
 # jpdb.io-scraper
-### Scrapes [jpdb.io](https://jpdb.io/) for kanji based on **jpdb's frequency data** and user needs.
+### Scrapes [jpdb.io](https://jpdb.io/) for japanese words based on **jpdb's frequency data** and user needs.
 
 # What's it all about?
 
