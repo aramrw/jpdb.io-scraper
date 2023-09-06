@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import readline from 'readline'
 import fs from 'fs';
 import chalk from 'chalk';
+import { url } from 'inspector';
 process.setMaxListeners(100); // You can adjust the number based on your needs
 
 const rl = readline.createInterface({
@@ -10,11 +11,9 @@ const rl = readline.createInterface({
 });
 
 console.clear();
-
 enterCustomLink();
 
 async function enterCustomLink() {
-
   let finalEntryNumber = 0;
   console.log('\x1b[1m\x1b[37m%s\x1b[0m', "TITLE'S LIST: ");
   console.log('\x1b[34m%s\x1b[0m', "https://jpdb.io/prebuilt_decks?sort_by=word_count&order=reverse\n");
@@ -42,158 +41,99 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
   console.clear();
   console.log(chalk.bold.red("Loading...\n"));
 
-  if (!finalEntryNumber == 0) {
-    let lastEntryNumber = 0;
-    console.log(`\nYou ended at ` + chalk.bold.red(`${finalEntryNumber}`) + ` last time, start from here?\n` + chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No`))
-    rl.question('', (question) => {
-      const finalEntryQuestion = question;
-      switch (finalEntryQuestion) {
-        case '1':
-          lastEntryNumber = finalEntryNumber;
-          ifLastOffset(lastEntryNumber);
-          break;
-        case '2':
-          break;
-        case 'yes':
-          lastEntryNumber = finalEntryNumber;
-          ifLastOffset(lastEntryNumber);
-          break;
-        case 'no':
-          break;
-        default:
-          console.clear()
-          console.log('Please enter 1 or 2!')
-          foundcustomUrl(customUrl, finalEntryNumber);
-          break;
-      }
-    })
+  const newCustomUrl = customUrl.toString();
+  const browser = await puppeteer.launch({
+    headless: "new",
+  });
+
+  const page = await browser.newPage();
+  //console.log(`THIS IS THE CUSTOM URL ${newCustomUrl}`);
+  await page.goto(`${newCustomUrl}`, { waitUntil: "load", timeout: 0 });
+
+  // Get get the list of paragraph elements that show # of entries
+  const paragraphElements = await page.evaluate(() => {
+    const paragraphElements = document.querySelectorAll("p");
+    return Array.from(paragraphElements, (element) => element.textContent.trim());
+  });
+
+  let foundParagraphElements = [];
+  let coloredNumber;
+
+  const urlSegments = customUrl.split('/')
+  let urlName;
+  if (!urlSegments[5] == "") {
+    urlName = urlSegments[5].replace(/-/g, ' ');
   } else {
-    const newCustomUrl = customUrl.toString();
-    const browser = await puppeteer.launch({
-      headless: "old",
+    const h4Elements = await page.evaluate(() => {
+      const h4Elements = document.querySelectorAll("h4");
+      return Array.from(h4Elements, (element) => element.textContent.trim());
     });
-
-    const page = await browser.newPage();
-    //console.log(`THIS IS THE CUSTOM URL ${newCustomUrl}`);
-    await page.goto(`${newCustomUrl}`, { waitUntil: "load", timeout: 0 });
-
-    // Get get the list of paragraph elements that show # of entries
-    const paragraphElements = await page.evaluate(() => {
-      const paragraphElements = document.querySelectorAll("p");
-      return Array.from(paragraphElements, (element) => element.textContent.trim());
-    });
-
-    let foundParagraphElements = [];
-    let coloredNumber;
-
-    const urlSegments = customUrl.split('/')
-    let urlName;
-    if (!urlSegments[5] == "") {
-      urlName = urlSegments[5].replace(/-/g, ' ');
-    } else {
-      const h4Elements = await page.evaluate(() => {
-        const h4Elements = document.querySelectorAll("h4");
-        return Array.from(h4Elements, (element) => element.textContent.trim());
-      });
-      for (const h4Elem of h4Elements) {
-        let h4Segments = h4Elem.split(':');
-        urlName = h4Segments[1].replace(/\s/g, '');
-      }
+    for (const h4Elem of h4Elements) {
+      let h4Segments = h4Elem.split(':');
+      urlName = h4Segments[1].replace(/\s/g, '');
     }
-    let paragraphNumber;
+  }
+  let paragraphNumber;
 
 
-    for (const paragraphElement of paragraphElements) {
-      if (paragraphElement.includes("Showing")) {
-        paragraphNumber = Number(paragraphElement.slice(19, paragraphElement.lastIndexOf(' ')));
-        coloredNumber = chalk.bold.blue(`${urlName}`) + " has " + chalk.bold.red(`${paragraphNumber}`) + " entries."
-        foundParagraphElements.push(Math.floor(paragraphNumber / 50));
-      }
+  for (const paragraphElement of paragraphElements) {
+    if (paragraphElement.includes("Showing")) {
+      paragraphNumber = Number(paragraphElement.slice(19, paragraphElement.lastIndexOf(' ')));
+      coloredNumber = chalk.bold.blue(`${urlName}`) + " has " + chalk.bold.red(`${paragraphNumber}`) + " entries."
+      foundParagraphElements.push(Math.floor(paragraphNumber / 50));
     }
+  }
 
-    let frequencyCheckComplete = false;
-    let newVocabOffset;
+  let frequencyCheckComplete = false;
+  let newVocabOffset;
 
-    if (!finalEntryNumber == 0) {
-      await ifLastOffset(lastEntryNumber);
-    } else {
-      await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-    }
+  await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
 
-    async function frequencyCheck(frequencyCheckComplete, page, newVocabOffset) {
-      //Navigate to frequency page
-      let customUrlArray = newCustomUrl.split("/");
-      let index = customUrlArray.lastIndexOf("vocabulary-list"); // Find the index of "vocabulary-list"
-      let modifiedCustomUrl; // Declare the variable here
+  async function askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset) {
+    console.clear();
+    console.log(coloredNumber + "\n");
 
-      if (index !== -1) {
-        modifiedCustomUrl = customUrlArray.slice(0, index).join("/");
-        let vocabListLink = `${modifiedCustomUrl}/vocabulary-list?sort_by=by-frequency-global&offset=${newVocabOffset}`;
-
-        // Get get the list of div elements that shows frequency #
-        await page.goto(vocabListLink)
-        const divElements = await page.evaluate(() => {
-          const divElements = document.getElementsByClassName("tag tooltip");
-          return Array.from(divElements, (element) => element.textContent.trim());
-        });
-
+    if (frequencyCheckComplete == false) {
+      if (finalEntryNumber !== 0) {
+        let maxPages = Math.floor((Number(paragraphNumber) - Number(newVocabOffset)) / 50);
         console.clear();
-        if (divElements[0] == null) {
-          console.log("Frequency is ~ " + chalk.bold.red('30') + chalk.bold(',') + chalk.bold.red('000') + chalk.bold('+'))
-        } else {
-          console.log("Frequency is ~ " + chalk.bold.red(`${divElements[0]}\n`))
-        }
-
-        console.log("Would you like to continue?\n" + chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No`))
-        rl.question(" ", async (answer) => {
-          let newAnswer = answer;
-          switch (newAnswer) {
-            case '1':
-              frequencyCheckComplete = true;
-              if (!finalEntryNumber == 0) {
-                await ifLastOffset(lastEntryNumber);
-              } else {
-                await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-              }
+        console.log(`Max available pages:\n` + chalk.bold.red(`${maxPages}`))
+        console.log('You ended at ' + chalk.bold.red(`${finalEntryNumber}`) + ' last time, start from here?\n' + chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No\n`))
+        rl.question("", async (answer) => {
+          switch (answer) {
+            case '1': // Yes
+              newVocabOffset = finalEntryNumber;
+              frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
               break;
-            case '2':
-              if (!finalEntryNumber == 0) {
-                await ifLastOffset(lastEntryNumber);
-                break;
-              } else {
-                await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-                break;
-              }
-            case 'yes':
-              frequencyCheckComplete = true;
-              if (!finalEntryNumber == 0) {
-                await ifLastOffset(lastEntryNumber);
-              } else {
-                await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-              }
+            case '2': // No
+              finalEntryNumber = 0;
+              await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
               break;
-            case 'no':
-              if (!finalEntryNumber == 0) {
-                await ifLastOffset(lastEntryNumber);
-              } else {
-                await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-              }
+            case 'yes': // Yes
+              newVocabOffset = finalEntryNumber;
+              frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+              break;
+            case 'no': // No
+              finalEntryNumber = 0;
+              await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
               break;
             default:
               console.clear()
-              console.log('Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2!"))
-              await frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+              console.log(chalk.bold.red('Error! ') + 'Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 800));
+                  askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 800));
+                }
+              }
               break;
           }
         })
-      }
-    }
-
-    // make the functions
-    async function askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset) {
-      console.clear();
-      console.log(coloredNumber + "\n");
-      if (frequencyCheckComplete == false) {
+        // if no finalEntryNumber is found
+      } else {
         console.log('Enter a search offset' + chalk.bold.red(' ->'))
         rl.question("", async (vocabOffset) => {
           let timerCounter = 3;
@@ -208,10 +148,10 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
-                  await new Promise((resolve) => setTimeout(resolve, 1300));
+                  await new Promise((resolve) => setTimeout(resolve, 800));
                   askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
                 } else {
-                  await new Promise((resolve) => setTimeout(resolve, 1200));
+                  await new Promise((resolve) => setTimeout(resolve, 800));
                 }
               }
             } else if (newVocabOffset < 0) {
@@ -220,10 +160,10 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
-                  await new Promise((resolve) => setTimeout(resolve, 1300));
+                  await new Promise((resolve) => setTimeout(resolve, 800));
                   askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
                 } else {
-                  await new Promise((resolve) => setTimeout(resolve, 1200));
+                  await new Promise((resolve) => setTimeout(resolve, 800));
                 }
               }
             }
@@ -233,161 +173,157 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
             for (let i = 3; i > 0; i--) {
               console.log(chalk.bold.red(i));
               if (i === 1) {
-                await new Promise((resolve) => setTimeout(resolve, 1000));
+                await new Promise((resolve) => setTimeout(resolve, 800));
                 askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
               } else {
-                await new Promise((resolve) => setTimeout(resolve, 1000));
+                await new Promise((resolve) => setTimeout(resolve, 800));
               }
             }
-          }
-
-        });
-      } else {
-        let maxPages = Math.floor((Number(paragraphNumber) - Number(newVocabOffset)) / 50);
-        console.clear();
-        console.log(`Max available pages: ` + chalk.bold.red(`${maxPages}`))
-        console.log("\nPlease enter " + chalk.bold("amount") + " of enter pages to scrape:")
-        rl.question("", async (answer) => {
-          let pageAmount = answer;
-          if (!pageAmount.length == 0 && !Number(pageAmount) > Number(foundParagraphElements[1])) {
-            await page.close();
-          }
-
-          const totalPages = Math.min(Number(pageAmount), 100);
-
-          const parallelTasks = []; // Array to store the parallel scraping tasks
-          let trackPages = 0;
-
-          console.log("Scraping...");
-          for (let i = 0; i <= totalPages; i++) {
-            if (i == totalPages) {
-              break
-            }
-            newVocabOffset += + 50;
-            await scrapeCustomLink(newVocabOffset, newCustomUrl, browser);
-            trackPages++;
-            finalEntryNumber = newVocabOffset;
-            console.clear();
-            console.log("Page " + chalk.bold.red(`${trackPages}`) + " out of " + chalk.bold.greenBright(`${pageAmount}`))
-
-          }
-
-
-          console.log(chalk.bold.greenBright(`Successfully `) + "scraped all " + chalk.bold.greenBright(`${totalPages}`) + " pages.\n");
-          console.log("Scrape Again?");
-          scrapeAgain();
-
-          function scrapeAgain() {
-            console.log(chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No`));
-            rl.question("", async (yesNo) => {
-              switch (Number(yesNo)) {
-                case 1:
-                  scrapeSameLinkAgain(newCustomUrl);
-                  function scrapeSameLinkAgain(newCustomUrl) {
-                    console.log("\nScrape " + chalk.bold.red(`${urlName}`) + " again?\n" + chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No`));
-                    rl.question("", async (sameLink) => {
-                      if (Number(sameLink) == 1) {
-                        foundcustomUrl(customUrl, finalEntryNumber);
-                      } else if (Number(sameLink) == 2) {
-                        enterCustomLink();
-                      } else {
-                        console.log(chalk.bold.red("Invalid choice.") + ("Please enter " + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2\n")));
-                        scrapeSameLinkAgain();
-                      }
-                    });
-                  }
-                  break;
-                case 2:
-                  for (let i = 10; i > 0; i--) {
-                    console.log(chalk.bold.red("\nG") + chalk.hex('#FF8800').bold("o") + chalk.bold.yellow("o") + chalk.bold.greenBright("d") + chalk.bold.blue("b") + chalk.hex('#FF00FF').bold("y") + chalk.bold.red("e") + chalk.hex('#FF8800').bold("!\n"));
-                  }
-                  process.exit();
-                default:
-                  console.log(chalk.bold.red("Invalid choice.") + ("Please enter " + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2\n")));
-                  scrapeAgain();
-                  break;
-              }
-            });
           }
         });
       }
+      // else statement that starts scraping
+    } else {
 
-    }
-
-    async function ifLastOffset(lastEntryNumber) {
-      console.log("YOU ARE RUNNING IFLASTOFFSET")
-      //console.clear();
-      console.log(`Max available pages: ` + chalk.bold.red(`${foundParagraphElements[0]}`))
-      console.log("\nPlease enter " + chalk.bold("amount") + " of enter pages to scrape:")
+      // section starts here
+      let maxPages = Math.floor((Number(paragraphNumber) - Number(newVocabOffset)) / 50);
+      console.clear();
+      console.log(`Max available pages: ` + chalk.bold.red(`${maxPages}`))
+      console.log("Please enter " + chalk.bold("amount") + " of enter pages to scrape:")
       rl.question("", async (answer) => {
         let pageAmount = answer;
-        if (!pageAmount.length == 0 && !Number(pageAmount) > Number(foundParagraphElements[1])) {
-          await page.close();
+        // error handling for invalid input
+        console.clear();
+        console.log(chalk.bold.red('Error! ') + 'Value cannot be ' + chalk.bold.greenBright("<") + '0' + " or " + chalk.bold.red(">" + (`${maxPages}`) + '!\n'));
+        if (!pageAmount.length <= 0 || !Number(pageAmount) > Number(foundParagraphElements[1])) {
+          for (let i = 3; i > 0; i--) {
+            console.log(chalk.bold.red(i));
+            if (i === 1) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            } else {
+              await new Promise((resolve) => setTimeout(resolve, 800));
+            }
+          }
+          askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
         }
 
-        let newVocabOffset = Number(lastEntryNumber);
-        finalEntryNumber = 0;
+        // starting scraping
+        let newVocabOffset = Number(finalEntryNumber);
         const totalPages = Math.min(Number(pageAmount), 100);
-
         const parallelTasks = []; // Array to store the parallel scraping tasks
-
-
-        console.log("Scraping...");
+        let trackPages = 0;
+        console.clear();
+        console.log(chalk.bold.red("Scraping") + '...');
         for (let i = 0; i <= totalPages; i++) {
           if (i == totalPages) {
             break
           }
           newVocabOffset += + 50;
           await scrapeCustomLink(newVocabOffset, newCustomUrl, browser);
+          trackPages++;
           finalEntryNumber = newVocabOffset;
-          //console.log(finalEntryNumber)
+          console.clear();
+          console.log("Page " + chalk.bold.green(`${trackPages}`) + " out of " + chalk.bold.red(`${pageAmount}`))
+
         }
+        // end scraping and log results
+        console.log(chalk.bold.greenBright(`Successfully `) + "scraped all " + chalk.bold.greenBright(`${totalPages}`) + " pages.");
+        scrapeSameLinkAgain(urlName, finalEntryNumber);
 
-
-        console.log(`Successfully scraped all ${totalPages} pages.\n`);
-        console.log("Would you like to scrape again?");
-        scrapeAgain();
-
-        function scrapeAgain() {
-          rl.question("1: Yes\n2: No\n", async (yesNo) => {
-            switch (Number(yesNo)) {
-              case 1:
-                scrapeSameLinkAgain(newCustomUrl);
-                function scrapeSameLinkAgain(newCustomUrl) {
-                  rl.question(`\nScrape ${newCustomUrl} again?\n1: Yes\n2: No\n`, async (sameLink) => {
-                    if (Number(sameLink) == 1) {
-                      foundcustomUrl(customUrl);
-                    } else if (Number(sameLink) == 2) {
-                      enterCustomLink();
-                    } else {
-                      console.log("Invalid choice; Please enter 1 or 2\n");
-                      scrapeSameLinkAgain();
-                    }
-                  });
-                }
-
-                break;
-              case 2:
-                console.log("\nGoodbye!");
-                process.exit();
-              default:
-                "Invalid choice; Please enter 1 or 2";
-                scrapeAgain();
-                break;
-            }
-          });
-        }
+        // section ends here
       });
     }
-
   }
 
+  async function frequencyCheck(frequencyCheckComplete, page, newVocabOffset) {
+    //Navigate to frequency page
+    let customUrlArray = newCustomUrl.split("/");
+    let index = customUrlArray.lastIndexOf("vocabulary-list"); // Find the index of "vocabulary-list"
+    let modifiedCustomUrl; // Declare the variable here
+
+    if (index !== -1) {
+      modifiedCustomUrl = customUrlArray.slice(0, index).join("/");
+      let vocabListLink = `${modifiedCustomUrl}/vocabulary-list?sort_by=by-frequency-global&offset=${newVocabOffset}`;
+
+      // Get get the list of div elements that shows frequency #
+      await page.goto(vocabListLink)
+      const divElements = await page.evaluate(() => {
+        const divElements = document.getElementsByClassName("tag tooltip");
+        return Array.from(divElements, (element) => element.textContent.trim());
+      });
+
+      console.clear();
+      if (divElements[0] == null) {
+        console.log("Frequency is ~ " + chalk.bold.red('30') + chalk.bold(',') + chalk.bold.red('000') + chalk.bold('+'))
+      } else {
+        console.log("Frequency is ~ " + chalk.bold.red(`${divElements[0]}\n`))
+      }
+
+      console.log("Would you like to continue?\n" + chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No`))
+      rl.question(" ", async (answer) => {
+        let newAnswer = answer;
+        switch (newAnswer) {
+          case '1':
+            frequencyCheckComplete = true;
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            break;
+          case '2':
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            break;
+          case 'yes':
+            frequencyCheckComplete = true;
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            break;
+          case 'no':
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            break;
+          default:
+            console.clear()
+            console.log('Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2!"))
+            if (i === 1) {
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            } else {
+              await new Promise((resolve) => setTimeout(resolve, 800));
+            }
+            await frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+            break;
+        }
+      })
+    }
+  }
+
+  function scrapeSameLinkAgain(urlName, finalEntryNumber) {
+    rl.question('\nScrape ' + chalk.bold.red(`${urlName}`) + ' again?' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (sameLink) => {
+      if (Number(sameLink) == 1) {
+        foundcustomUrl(customUrl, finalEntryNumber);
+      } else if (Number(sameLink) == 2) {
+        console.clear();
+        finalEntryNumber = 0;
+        enterCustomLink();
+      } else {
+        console.clear();
+        console.log(chalk.bold.red('Error! ') + 'Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+        for (let i = 3; i > 0; i--) {
+          console.log(chalk.bold.red(i));
+          if (i === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
+        }
+        scrapeSameLinkAgain(urlName, finalEntryNumber);
+      }
+    });
+  }
 
 }
 
 async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
   // const browser = await puppeteer.launch({
-  //   headless: "old",
+  //   headless: "new",
   // });
 
   const page2 = await browser.newPage();
@@ -481,6 +417,7 @@ async function writeKanji(rubyWords) {
       //console.log(``);
     } catch (error) {
       console.error(`Error writing to file: ${error}`);
+      process.exit();
     }
   }
 }
