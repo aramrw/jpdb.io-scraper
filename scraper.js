@@ -10,25 +10,30 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
+const frequentlyUsedLinks = []
+const chalkYellow = chalk.hex('#Ffce00'); // Using the hex code for gold color
+
+
+
 console.clear();
 enterCustomLink();
-
 async function enterCustomLink() {
   let finalEntryNumber = 0;
-  console.log('\x1b[1m\x1b[37m%s\x1b[0m', "TITLE'S LIST: ");
-  console.log('\x1b[34m%s\x1b[0m', "https://jpdb.io/prebuilt_decks?sort_by=word_count&order=reverse\n");
-  rl.question("Enter anime/novel url: ", async (customUrl) => {
+  console.log(chalk.bold(chalk.bold.red("Anime ") + "& " + chalk.bold.red("Novel ") + "links:"));
+  console.log(chalk.blue("https://jpdb.io/prebuilt_decks?sort_by=word_count&order=reverse\n"));
+  console.log(chalkYellow("Enter an Anime / Novel Url ") + chalk.bold.red("->"));
+  rl.question("", async (customUrl) => {
     if (customUrl.length < 15 && customUrl.includes("/vocabulary-list") && customUrl.includes("https://jpdb.io/")) {
       console.clear();
-      console.log('\x1b[31m\x1b[1m%s\x1b[0m', "Invalid: Url must be longer than 15 characters.\n");
-      console.log('\x1b[1m\x1b[37m%s\x1b[0m', "Example Link: ");
-      console.log('\x1b[34m%s\x1b[0m', "https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n");
+      console.log(chalk.bold.red("Invalid! ") + ("Url must be longer than 15 characters.\n"));
+      console.log(chalk.bold("Example Link: "));
+      console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
       await enterCustomLink();
     } else if (!customUrl.includes("/vocabulary-list") || !customUrl.includes("https://jpdb.io/")) {
       console.clear();
-      console.log('\x1b[31m\x1b[1m%s\x1b[0m', "Invalid: Only enter anime/novel's vocabulary list url.\n");
-      console.log('\x1b[1m\x1b[37m%s\x1b[0m', "Example Link: ");
-      console.log('\x1b[34m%s\x1b[0m', "https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n");
+      console.log(chalk.bold.red("Invalid! ") + "Only enter anime/novel's " + chalk.bold.yellowBright("vocabulary list ") + "url.\n");
+      console.log(chalk.bold.yellowBright("Example Link: "));
+      console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
       await enterCustomLink();
     } else {
       await foundcustomUrl(customUrl, finalEntryNumber);
@@ -51,10 +56,16 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
   await page.goto(`${newCustomUrl}`, { waitUntil: "load", timeout: 0 });
 
   // Get get the list of paragraph elements that show # of entries
+
   const paragraphElements = await page.evaluate(() => {
     const paragraphElements = document.querySelectorAll("p");
     return Array.from(paragraphElements, (element) => element.textContent.trim());
   });
+
+  // if url isnt right
+
+
+
 
   let foundParagraphElements = [];
   let coloredNumber;
@@ -73,8 +84,8 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
       urlName = h4Segments[1].replace(/\s/g, '');
     }
   }
-  let paragraphNumber;
 
+  let paragraphNumber;
 
   for (const paragraphElement of paragraphElements) {
     if (paragraphElement.includes("Showing")) {
@@ -84,20 +95,34 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
     }
   }
 
-  let frequencyCheckComplete = false;
-  let newVocabOffset;
+  if (foundParagraphElements.length == 0 || foundParagraphElements == undefined || foundParagraphElements == undefined) {
+    await browser.close();
+    console.log(chalk.bold.red('Error! ') + 'Invalid url! Please try again.');
+    for (let i = 3; i > 0; i--) {
+      console.log(chalk.bold.red(i));
+      if (i === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        console.clear();
+        await enterCustomLink();
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+    }
+  } else {
 
-  await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+    let frequencyCheckComplete = false;
+    let newVocabOffset;
+    await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+  }
 
   async function askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset) {
     console.clear();
     console.log(coloredNumber + "\n");
 
     if (frequencyCheckComplete == false) {
+      // if finalEntryNumber is found
       if (finalEntryNumber !== 0) {
         let maxPages = Math.floor((Number(paragraphNumber) - Number(newVocabOffset)) / 50);
-        console.clear();
-        console.log(`Max available pages:\n` + chalk.bold.red(`${maxPages}`))
         console.log('You ended at ' + chalk.bold.red(`${finalEntryNumber}`) + ' last time, start from here?\n' + chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No\n`))
         rl.question("", async (answer) => {
           switch (answer) {
@@ -134,7 +159,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
         })
         // if no finalEntryNumber is found
       } else {
-        console.log('Enter a search offset' + chalk.bold.red(' ->'))
+        console.log(chalkYellow('Enter a search offset') + chalk.bold.red(' ->'))
         rl.question("", async (vocabOffset) => {
           let timerCounter = 3;
           // Attempt to parse the input as an integer
@@ -144,7 +169,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
             } else if (newVocabOffset > paragraphNumber) {
               console.clear();
-              console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('bigger ') + 'than ' + chalk.bold.red(`${paragraphNumber}`) + ' !\n');
+              console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('bigger ') + 'than ' + chalk.bold.red(`${paragraphNumber}`) + '!\n');
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
@@ -156,7 +181,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               }
             } else if (newVocabOffset < 0) {
               console.clear();
-              console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('smaller ') + 'than ' + chalk.bold.red(`0`) + ' !\n');
+              console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('smaller ') + 'than ' + chalk.bold.red(`0`) + '!\n');
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
@@ -169,7 +194,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
             }
           } else {
             console.clear();
-            console.log(chalk.bold.red('Error! ') + 'Not a valid number. Try again ' + '!\n');
+            console.log(chalk.bold.red('Error! ') + 'Not a valid number. Try again' + '!\n');
             for (let i = 3; i > 0; i--) {
               console.log(chalk.bold.red(i));
               if (i === 1) {
@@ -184,18 +209,18 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
       }
       // else statement that starts scraping
     } else {
-
-      // section starts here
       let maxPages = Math.floor((Number(paragraphNumber) - Number(newVocabOffset)) / 50);
       console.clear();
       console.log(`Max available pages: ` + chalk.bold.red(`${maxPages}`))
-      console.log("Please enter " + chalk.bold("amount") + " of enter pages to scrape:")
+      console.log(chalkYellow("Please enter the ") + chalk.bold("amount ") + chalkYellow('of ') + chalk.bold.red('pages ') + chalkYellow('to scrape') + chalk.bold.red(' ->'));
       rl.question("", async (answer) => {
-        let pageAmount = answer;
+
         // error handling for invalid input
-        console.clear();
-        console.log(chalk.bold.red('Error! ') + 'Value cannot be ' + chalk.bold.greenBright("<") + '0' + " or " + chalk.bold.red(">" + (`${maxPages}`) + '!\n'));
-        if (!pageAmount.length <= 0 || !Number(pageAmount) > Number(foundParagraphElements[1])) {
+
+        let pageAmount = answer;
+        if (pageAmount.length <= 0 || Number(pageAmount) > Number(maxPages)) {
+          console.clear();
+          console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red("less ") + 'than ' + chalk.bold.red('0 ') + "or " + chalk.bold.red("greater " + 'than ' + (`${maxPages}`) + '!\n'));
           for (let i = 3; i > 0; i--) {
             console.log(chalk.bold.red(i));
             if (i === 1) {
@@ -205,36 +230,47 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               await new Promise((resolve) => setTimeout(resolve, 800));
             }
           }
-          askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-        }
+        } else {
 
-        // starting scraping
-        let newVocabOffset = Number(finalEntryNumber);
-        const totalPages = Math.min(Number(pageAmount), 100);
-        const parallelTasks = []; // Array to store the parallel scraping tasks
-        let trackPages = 0;
-        console.clear();
-        console.log(chalk.bold.red("Scraping") + '...');
-        for (let i = 0; i <= totalPages; i++) {
-          if (i == totalPages) {
-            break
-          }
-          newVocabOffset += + 50;
-          await scrapeCustomLink(newVocabOffset, newCustomUrl, browser);
-          trackPages++;
-          finalEntryNumber = newVocabOffset;
+          // starting scraping
+          const totalPages = Math.min(Number(pageAmount), 100);
+          const parallelTasks = []; // Array to store the parallel scraping tasks
+          let trackPages = 0;
           console.clear();
-          console.log("Page " + chalk.bold.green(`${trackPages}`) + " out of " + chalk.bold.red(`${pageAmount}`))
+          console.log(chalk.bold.red("Scraping") + '...');
 
+          // if i want to divide by 50 for some reason
+
+          // if (newVocabOffset % 50 !== 0) {
+          //   newVocabOffset = Math.round(newVocabOffset / 50) * 50;
+          // }
+
+          newVocabOffset = newVocabOffset - 50;
+          for (let i = 0; i <= totalPages; i++) {
+            if (i > totalPages) {
+              break;
+            }
+            newVocabOffset = newVocabOffset + 50;
+            await scrapeCustomLink(newVocabOffset, newCustomUrl, browser);
+            trackPages++;
+            finalEntryNumber = newVocabOffset;
+            console.clear();
+            console.log("Page " + chalk.bold.green(`${trackPages - 1}`) + " out of " + chalk.bold.red(`${pageAmount}`))
+          }
+
+          // end scraping and log results
+
+          console.log(newVocabOffset);
+          console.log(chalk.bold.greenBright(`Successfully `) + "scraped all " + chalk.bold.greenBright(`${totalPages}`) + " pages.");
+          scrapeSameLinkAgain(urlName, finalEntryNumber);
+
+          // section ends here
         }
-        // end scraping and log results
-        console.log(chalk.bold.greenBright(`Successfully `) + "scraped all " + chalk.bold.greenBright(`${totalPages}`) + " pages.");
-        scrapeSameLinkAgain(urlName, finalEntryNumber);
-
-        // section ends here
       });
     }
   }
+
+
 
   async function frequencyCheck(frequencyCheckComplete, page, newVocabOffset) {
     //Navigate to frequency page
@@ -260,7 +296,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
         console.log("Frequency is ~ " + chalk.bold.red(`${divElements[0]}\n`))
       }
 
-      console.log("Would you like to continue?\n" + chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No`))
+      console.log(chalkYellow("Would you like to continue?\n") + chalk.bold.greenBright(`[1] Yes\n`) + chalk.bold.red(`[2] No`))
       rl.question(" ", async (answer) => {
         let newAnswer = answer;
         switch (newAnswer) {
@@ -269,6 +305,8 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
             await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
             break;
           case '2':
+            frequencyCheckComplete = false;
+
             await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
             break;
           case 'yes':
@@ -276,16 +314,22 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
             await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
             break;
           case 'no':
+            frequencyCheckComplete = false;
             await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
             break;
           default:
             console.clear()
+            frequencyCheckComplete = false;
             console.log('Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2!"))
-            if (i === 1) {
-              await new Promise((resolve) => setTimeout(resolve, 500));
-              askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-            } else {
-              await new Promise((resolve) => setTimeout(resolve, 800));
+            for (let i = 3; i > 0; i--) {
+              console.log(chalk.bold.red(i));
+              if (i === 1) {
+                frequencyCheckComplete = false;
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                await frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+              } else {
+                await new Promise((resolve) => setTimeout(resolve, 800));
+              }
             }
             await frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
             break;
@@ -294,10 +338,43 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
     }
   }
 
+
   function scrapeSameLinkAgain(urlName, finalEntryNumber) {
+
+    rl.question(chalkYellow('\nWould you like to scrape again?') + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
+      switch (answer) {
+        case '1':
+          break;
+        case '2':
+          console.clear()
+          console.log(chalk.bold.yellowBright('Goodbye!'))
+          process.exit();
+        case 'yes':
+          break;
+        case 'no':
+          console.clear()
+          console.log(chalk.bold.yellowBright('Goodbye!'))
+          process.exit();
+        default:
+          console.clear()
+          console.log(chalk.bold.red('Error! ') + 'Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+          for (let i = 3; i > 0; i--) {
+            console.log(chalk.bold.red(i));
+            if (i === 1) {
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              scrapeSameLinkAgain(urlName, finalEntryNumber);
+            } else {
+              await new Promise((resolve) => setTimeout(resolve, 800));
+            }
+          }
+          scrapeSameLinkAgain(urlName, finalEntryNumber);
+          break;
+      }
+    });
     rl.question('\nScrape ' + chalk.bold.red(`${urlName}`) + ' again?' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (sameLink) => {
       if (Number(sameLink) == 1) {
-        foundcustomUrl(customUrl, finalEntryNumber);
+        frequencyCheckComplete = false;
+        askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
       } else if (Number(sameLink) == 2) {
         console.clear();
         finalEntryNumber = 0;
@@ -306,10 +383,10 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
         console.clear();
         console.log(chalk.bold.red('Error! ') + 'Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
         for (let i = 3; i > 0; i--) {
-          console.log(chalk.bold.red(i));
+          console.log(chalk.bold.red(`\n${i}`));
           if (i === 1) {
             await new Promise((resolve) => setTimeout(resolve, 500));
-            askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
           } else {
             await new Promise((resolve) => setTimeout(resolve, 800));
           }
