@@ -4,7 +4,7 @@
 
 - **Word Selection Simplified:** Scrape Japanese words relevant to your Japanese proficiency level from [jpdb.io](https://jpdb.io/)'s database. 
 
-- **Automated Word Extraction:** Automatically extracts and compiles words you need to know from your chosen sources like anime, light novels, and web novels (_if they are available on_ [jpdb.io](https://jpdb.io/)).
+- **Automated Word Extraction:** Automatically extracts and compiles words you need to know from your chosen sources like anime, light novels, and web novels _(if they are available on [jpdb.io](https://jpdb.io/))_.
 
 - **Frequency Insights:** Provides frequency analysis to help you identify must-know words at your proficiency level.
 
