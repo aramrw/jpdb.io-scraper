@@ -755,7 +755,8 @@ async function sortWords() {
         counter++;
         if (!processedWords.has(scrapedWord)) {
           //process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldYellow(`[ `) + cc.boldRed(`${counter}`) + cc.boldYellow(` ] `) + cc.boldBlue(`${scrapedWord}`) + cc.yellow(' of ') + cc.boldYellow(`[ `) + cc.boldRed(`${scrapedWord.length}`) + cc.boldYellow(` ] `));
-          process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldYellow(`[ `) + cc.boldBlue(`${scrapedWord}`));
+          //process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldYellow(`[ `) + cc.boldBlue(`${scrapedWord}`) + cc.boldYellow(']'));
+          process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldBlue(`${scrapedWord}`));
           animationIndex = (animationIndex + 1) % loadingAnimation.length;
 
           const matchingEntry = yomichanDictionaries.map((dictionary) => dictionary.find((entry) => entry[0] === scrapedWord)).find(Boolean);
