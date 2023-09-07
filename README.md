@@ -38,7 +38,7 @@ npm install chalk
 
 ## Additional Information
 
-- **Max pages: infinite;
+- **Max pages: infinite
 
 - **Works with:** Any content available on [jpdb.io](https://jpdb.io), including **web novels**, **anime**, and **regular novels**, among other **titles** on the site.
 
