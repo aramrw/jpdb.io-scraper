@@ -3,6 +3,12 @@ const readline = require("readline");
 const fs = require("fs");
 const chalk = require("chalk");
 const sorter = require('./sorter.js');
+const { stdout } = require("process");
+const { start } = require("repl");
+
+module.exports = {
+  startProgram
+};
 
 process.setMaxListeners(100); // You can adjust the number based on your needs
 
@@ -15,9 +21,10 @@ const frequentlyUsedLinks = []
 const chalkYellow = chalk.hex('#Ffce00'); // Using the hex code for gold color
 
 startProgram();
+
 async function startProgram() {
-  console.clear();
-  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('->\n') + chalk.bold.green('\n[1] Word Scraper\n') + chalk.bold.red('[2] Frequency Sorter\n'), async (answer) => {
+  console.clear()
+  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('->\n') + chalk.bold.yellowBright('\n[1] Word Scraper\n') + chalk.bold.blue('[2] Frequency Sorter\n') + chalk.bold.red('[3] Clear Output Files\n'), async (answer) => {
     switch (answer) {
       case '1':
         console.clear();
@@ -27,9 +34,13 @@ async function startProgram() {
         console.clear();
         sorter.sortWords();
         break;
+      case '3':
+        console.clear();
+        await clearFiles();
+        break;
       default:
         console.clear()
-        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+        console.log('Only enter ' + chalk.bold.greenBright("1") + chalk.bold.red("2") + " or " + chalk.bold.red("3" + '!\n'));
         for (let i = 3; i > 0; i--) {
           console.log(chalk.bold.red(i));
           if (i === 1) {
@@ -116,6 +127,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
       if (i === 1) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         console.clear();
+        browser.close();
         enterCustomLink();
       } else {
         await new Promise((resolve) => setTimeout(resolve, 800));
@@ -469,6 +481,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
           }
         });
       } else if (scrapeAgain == false) {
+        browser.close();
         askSorting();
       }
     });
@@ -600,7 +613,7 @@ async function writeKanji(rubyWords) {
       const newData = rubyWords.join("\n") + "\n";
 
       // Append the data to the file asynchronously
-      const outputFilePath = "./words/words.txt";
+      const outputFilePath = "./output/words.txt";
       await fs.promises.appendFile(outputFilePath, newData);
 
       //console.log(``);
@@ -608,5 +621,42 @@ async function writeKanji(rubyWords) {
       console.error(`Error writing to file: ${error}`);
       process.exit();
     }
+  }
+}
+
+async function clearFiles() {
+  console.clear();
+  try {
+    let counter = 0;
+    const outputFiles = fs.readdirSync('./output'); // Use fs.readdirSync for a synchronous operation
+    for (const file of outputFiles) {
+      counter++;
+      await new Promise((resolve, reject) => {
+        fs.writeFile(`./output/${file}`, '', (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+      stdout.write(('\rCleared ') + chalk.bold.red(`${counter}`) + ' of ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
+    }
+
+    if (counter === outputFiles.length) {
+      console.log(chalk.bold.greenBright('\nSuccessfully ') + 'cleared all ' + chalk.bold.red(`${outputFiles.length}`) + ' files.\n');
+      for (let i = 3; i > 0; i--) {
+        console.log(chalk.bold.red(i));
+        if (i === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          startProgram();
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      }
+    }
+
+  } catch (error) {
+    console.log(error);
   }
 }
