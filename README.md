@@ -25,7 +25,7 @@
 
 ## Getting Started
 
-Please note that the current version of this tool only works with Node.js v18.17.1 in the VsCode Terminal.
+Please note that the current version of this tool only works with **Node.js v18.17.1** in the **VsCode Terminal**.
 
 ### Install Dependencies 
 
@@ -38,7 +38,7 @@ npm install chalk
 
 ## Additional Information
 
-- **Max pages:** ???
+- **Max pages: infinite;
 
 - **Works with:** Any content available on [jpdb.io](https://jpdb.io), including **web novels**, **anime**, and **regular novels**, among other **titles** on the site.
 
