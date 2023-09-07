@@ -4,7 +4,7 @@
 
 -- **Automated Word Extraction**: Automatically scrapes and compiles words from anime, light novels, and web novels _(if they are available on [jpdb.io](https://jpdb.io/))_.
 
--- **Frequency Insights**: Provides frequency analysis to help you identify must-know words at your proficiency level.
+-- **Frequency Insights**: Provides frequency analysis to help you identify useful words at your proficiency level.
 
 -- **Quickly Scrape Where You Left Off**: Tracks what anime / novels you frequently scrape + suggests similar ones.
   
