@@ -2,7 +2,7 @@
 
 ## What Does It Do?
 
--- **Automated Word Extraction**: Automatically scrapes and compiles words from anime, light novels, and web novels _(if they are available on [jpdb.io](https://jpdb.io/))_.
+-- **Automated Word Extraction**: Automatically scrapes and compiles words from **web novels**, **anime**, **visual novels**, and **regular novels**, among other **titles** on the site. _(if they are available on [jpdb.io](https://jpdb.io/))_.
 
 -- **Frequency Insights**: Provides frequency analysis to help you identify useful words at your proficiency level before you scrape them.
 
@@ -41,7 +41,7 @@ npm install chalk
 
 - **Max pages: infinite
 
-- **Works with:** Any content available on [jpdb.io](https://jpdb.io), including **web novels**, **anime**, and **regular novels**, among other **titles** on the site.
+- **Works with:** Any content available on [jpdb.io](https://jpdb.io), including **web novels**, **anime**, **visual novels**, and **regular novels**, among other **titles** on the site.
 
 ## Special Thanks To:
 
