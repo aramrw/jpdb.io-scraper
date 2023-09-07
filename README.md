@@ -1,28 +1,26 @@
 # jpdb.io-scraper
-### Scrapes [jpdb.io](https://jpdb.io/) for japanese words based on **jpdb's frequency data** and user needs.
 
-# What's it all about?
+## What Does It Do?
 
-📚 **Vocabulary from Your Favorites:** Do you have trouble picking out words that are useful for you at _your level_ of japanese ability? Evere wished you could grab all the useful words from a anime or novel series, but don't feel like sitting through it? Or maybe you haven't mined enough words today for your anki deck?
+- **Word Selection Simplified:** Scrape Japanese words relevant to your Japanese proficiency level from [jpdb.io](https://jpdb.io/)'s database. 
 
-🤖 **Automatic Scraping:** Say goodbye to manual word hunting. It automatically extracts and compiles the words you need to know from your chosen **anime** / **light novel** / **web novel** _(only if it exists on [jpdb.io](https://jpdb.io/)_).
+- **Automated Word Extraction:** Automatically extracts and compiles words you need to know from your chosen sources like anime, light novels, and web novels (_if they are available on_ [jpdb.io](https://jpdb.io/)).
 
-🔝 **Frequency Insights:** Wondering which words are super common or super hard? It has you covered with frequency analysis. Discover the must-know words at _your level_.
+- **Frequency Insights:** Provides frequency analysis to help you identify must-know words at your proficiency level.
 
-📜 **Flexible Learning:** Whether you want to start fresh or continue where you left off, offset management makes it a breeze.
+- **Quickly Scrape Where You Left Off:** Tracks what anime / novels you frequently scrape + suggests similar ones.
 
-🧠 **Effortless Learning:** Collect japanese words effortlessly and export them to supercharge your language studies.
+## Getting Started
 
-- **Ready to Get Started?**
+Please note that the current version of this tool only works with Node.js v18.17.1 in the VsCode Terminal.
 
-Current version _only works_ with **Node.js v18.17.1.**  in the **VsCode Terminal**.
+## Additional Information
 
-# 補足説明 
-Max pages - ???
+- **Max pages:** ???
 
-/ Works with anything on jpdb.io ~ all web novels + anime + regular novels ~ 
-/ + other titles on the site.
+- **Works with:** Any content available on [jpdb.io](https://jpdb.io), including **web novels**, **anime**, and **regular novels**, among other **titles** on the site.
 
-Thanks to : 
-- [jpdb.io](https://jpdb.io/) 
-- [jpdb's discord server](https://discord.com/invite/jWwVD7D2sZ)
+## Special Thanks To:
+
+- [jpdb.io](https://jpdb.io/)
+- [jpdb's Discord Server](https://discord.com/invite/jWwVD7D2sZ)
