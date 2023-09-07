@@ -9,8 +9,19 @@
 -- **Quickly Scrape Where You Left Off**: Tracks what anime / novels you frequently scrape + suggests similar ones.
   
 -- **Built In Frequency Sorter**: Gives you the option to sort words you scraped by using [this frequency dictionary](https://github.com/MarvNC/jpdb-freq-list) or 5 others from [here](https://drive.google.com/drive/folders/1g1drkFzokc8KNpsPHoRmDJ4OtMTWFuXi).
-- If you would like to use your own frequency dictionary:
-- 
+
+**If you would like to use your own frequency dictionary**:
++ Download one from [here](https://drive.google.com/drive/folders/1g1drkFzokc8KNpsPHoRmDJ4OtMTWFuXi) *or any other ones that are compatible with* [Yomichan](https://chrome.google.com/webstore/detail/yomichan/ogmnaimimemjmbakcfefmnahgdfhfami).
++ copy **index.json** into the **yomichan_dicts** folder *(Make sure to rename index to the name of the dictionary)*. You don't need the meta banks.
+```
+├── Anime & J-Drama Frequency Dictionary
+│ ├── index.json 
+│ ├── term_meta_bank1.md
+│ └── term_meta_bank2.md
+...more meta_banks.md
+```
+
+
 
 ## Getting Started
 
