@@ -2,13 +2,13 @@
 
 ## What Does It Do?
 
--- **Automated Word Extraction**: Automatically scrapes and compiles words from **web novels**, **anime**, **visual novels**, and **regular novels**, among other **titles** on the site. _(if they are available on [jpdb.io](https://jpdb.io/))_.
+ ### Automatically scrapes and compiles words from **anime**, **visual novels**, **web / light novels**, + more from [jpdb.io](https://jpdb.io/).
 
--- **Frequency Insights**: Provides frequency analysis to help you identify useful words at your proficiency level before you scrape them.
+- **Frequency Insights**: Provides frequency analysis to help you identify useful words at your proficiency level before you scrape them.
 
--- **Quickly Scrape Where You Left Off**: Tracks what anime / novels you frequently scrape + suggests similar ones.
+- **Quickly Scrape Where You Left Off**: Tracks what anime / novels you frequently scrape + suggests similar ones.
   
--- **Built In Frequency Sorter**: Gives you the option to sort words you scraped by using [this frequency dictionary](https://github.com/MarvNC/jpdb-freq-list) or 5 others from [here](https://drive.google.com/drive/folders/1g1drkFzokc8KNpsPHoRmDJ4OtMTWFuXi). 
+- **Built In Frequency Sorter**: Gives you the option to sort words you scraped by using [this frequency dictionary](https://github.com/MarvNC/jpdb-freq-list) or 5 others from [here](https://drive.google.com/drive/folders/1g1drkFzokc8KNpsPHoRmDJ4OtMTWFuXi). 
 
 [**Here's the standalone version of the sorter without the scraper**](https://github.com/aramrw/jp-frequency_sorter)
 
@@ -39,9 +39,7 @@ npm install chalk
 
 ## Additional Information
 
-- **Max pages: infinite
-
-- **Works with:** Any content available on [jpdb.io](https://jpdb.io), including **web novels**, **anime**, **visual novels**, and **regular novels**, among other **titles** on the site.
+- **Max pages: infinite.
 
 ## Special Thanks To:
 
