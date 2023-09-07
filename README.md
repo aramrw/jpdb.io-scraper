@@ -2,17 +2,28 @@
 
 ## What Does It Do?
 
-- **Word Selection Simplified:** Scrape Japanese words relevant to your Japanese proficiency level from [jpdb.io](https://jpdb.io/)'s database. 
+-- **Automated Word Extraction**: Automatically scrapes and compiles words from anime, light novels, and web novels _(if they are available on [jpdb.io](https://jpdb.io/))_.
 
-- **Automated Word Extraction:** Automatically extracts and compiles words you need to know from your chosen sources like anime, light novels, and web novels _(if they are available on [jpdb.io](https://jpdb.io/))_.
+-- **Frequency Insights**: Provides frequency analysis to help you identify must-know words at your proficiency level.
 
-- **Frequency Insights:** Provides frequency analysis to help you identify must-know words at your proficiency level.
-
-- **Quickly Scrape Where You Left Off:** Tracks what anime / novels you frequently scrape + suggests similar ones.
+-- **Quickly Scrape Where You Left Off**: Tracks what anime / novels you frequently scrape + suggests similar ones.
+  
+-- **Built In Frequency Sorter**: Gives you the option to sort words you scraped by using [this frequency dictionary](https://github.com/MarvNC/jpdb-freq-list) or 5 others from [here](https://drive.google.com/drive/folders/1g1drkFzokc8KNpsPHoRmDJ4OtMTWFuXi).
+- If you would like to use your own frequency dictionary:
+- 
 
 ## Getting Started
 
 Please note that the current version of this tool only works with Node.js v18.17.1 in the VsCode Terminal.
+
+### Install Dependencies 
+
+```
+npm install puppeteer
+```
+```
+npm install chalk
+```
 
 ## Additional Information
 
