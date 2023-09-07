@@ -3,13 +3,13 @@
 
 # What's it all about?
 
-📚 **Vocabulary from Your Favorites:** Do you have trouble picking out words that are useful for you at _your level_ of japanese ability? Or have you evered wished you could grab all the useful words from a series but don't feel like sitting through it? 
+📚 **Vocabulary from Your Favorites:** Do you have trouble picking out words that are useful for you at _your level_ of japanese ability? Evere wished you could grab all the useful words from a anime or novel series, but don't feel like sitting through it? Or maybe you haven't mined enough words today for your anki deck?
 
-🤖 **Automatic Scraping:** Say goodbye to manual word hunting. It automatically extracts and compiles the words you need to know from your chosen **anime** / **light novel** / **web novel** _(only if it exists on [jpdb.io](https://jpdb.io/)_.
+🤖 **Automatic Scraping:** Say goodbye to manual word hunting. It automatically extracts and compiles the words you need to know from your chosen **anime** / **light novel** / **web novel** _(only if it exists on [jpdb.io](https://jpdb.io/)_).
 
-🔝 **Frequency Insights:** Wondering which words are super common? It has you covered with frequency analysis. Discover the must-know words that'll level up your Japanese.
+🔝 **Frequency Insights:** Wondering which words are super common or super hard? It has you covered with frequency analysis. Discover the must-know words at _your level_.
 
-📜 **Flexible Learning:** Whether you want to start fresh or continue where you left off, our offset management makes it a breeze.
+📜 **Flexible Learning:** Whether you want to start fresh or continue where you left off, offset management makes it a breeze.
 
 🧠 **Effortless Learning:** Collect japanese words effortlessly and export them to supercharge your language studies.
 

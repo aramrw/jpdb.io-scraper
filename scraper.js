@@ -1,8 +1,9 @@
-import puppeteer from 'puppeteer';
-import readline from 'readline'
-import fs from 'fs';
-import chalk from 'chalk';
-import { url } from 'inspector';
+const puppeteer = require("puppeteer");
+const readline = require("readline");
+const fs = require("fs");
+const chalk = require("chalk");
+const sorter = require('./sorter.js');
+
 process.setMaxListeners(100); // You can adjust the number based on your needs
 
 const rl = readline.createInterface({
@@ -13,34 +14,80 @@ const rl = readline.createInterface({
 const frequentlyUsedLinks = []
 const chalkYellow = chalk.hex('#Ffce00'); // Using the hex code for gold color
 
+startProgram();
+async function startProgram() {
+  console.clear();
+  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('->\n') + chalk.bold.green('\n[1] Word Scraper\n') + chalk.bold.red('[2] Frequency Sorter\n'), async (answer) => {
+    switch (answer) {
+      case '1':
+        console.clear();
+        enterCustomLink();
+        break;
+      case '2':
+        console.clear();
+        sorter.sortWords();
+        break;
+      default:
+        console.clear()
+        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+        for (let i = 3; i > 0; i--) {
+          console.log(chalk.bold.red(i));
+          if (i === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            startProgram();
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
+        }
+        break;
+    }
 
+  });
+}
 
-console.clear();
-enterCustomLink();
 async function enterCustomLink() {
   let finalEntryNumber = 0;
   console.log(chalk.bold(chalk.bold.red("Anime ") + "& " + chalk.bold.red("Novel ") + "links:"));
   console.log(chalk.blue("https://jpdb.io/prebuilt_decks?sort_by=word_count&order=reverse\n"));
   console.log(chalkYellow("Enter an Anime / Novel Url ") + chalk.bold.red("->"));
   rl.question("", async (customUrl) => {
-    if (customUrl.length < 15 && customUrl.includes("/vocabulary-list") && customUrl.includes("https://jpdb.io/")) {
+    if (customUrl.length < 7 && customUrl.includes("/vocabulary-list") && customUrl.includes("jpdb.io/")) {
       console.clear();
-      console.log(chalk.bold.red("Invalid! ") + ("Url must be longer than 15 characters.\n"));
+      console.log(chalk.bold.red("Invalid! ") + ("Url must be" + chalk.bold.red("longer") + "than" + chalk.bold.red("7") + "characters.\n"));
       console.log(chalk.bold("Example Link: "));
       console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
       await enterCustomLink();
-    } else if (!customUrl.includes("/vocabulary-list") || !customUrl.includes("https://jpdb.io/")) {
+    }
+    else if (customUrl.length < 5) {
+      console.clear();
+      console.log(chalk.bold.red("Invalid Url!\n"));
+      console.log(chalk.bold.yellowBright("Example Link: "));
+      console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
+      await enterCustomLink();
+    }
+    else if ((!customUrl.includes("/vocabulary-list")) || (!customUrl.includes("//jpdb.io/"))) {
       console.clear();
       console.log(chalk.bold.red("Invalid! ") + "Only enter anime/novel's " + chalk.bold.yellowBright("vocabulary list ") + "url.\n");
       console.log(chalk.bold.yellowBright("Example Link: "));
       console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
-      await enterCustomLink();
-    } else {
+      for (let i = 3; i > 0; i--) {
+        console.log(chalk.bold.red(i));
+        if (i === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1100));
+          console.clear();
+          console.log(chalk.bold.yellowBright("Example Link: "));
+          console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
+          await enterCustomLink();
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    else {
       await foundcustomUrl(customUrl, finalEntryNumber);
     }
   });
 }
-
 
 async function foundcustomUrl(customUrl, finalEntryNumber) {
   console.clear();
@@ -48,74 +95,86 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
 
   const newCustomUrl = customUrl.toString();
   const browser = await puppeteer.launch({
+    //executablePath: `${__dirname}/node_modules/puppeteer/chrome/win64-115.0.5790.170/chrome-win64/chrome.exe`,
     headless: "new",
   });
 
   const page = await browser.newPage();
-  //console.log(`THIS IS THE CUSTOM URL ${newCustomUrl}`);
-  await page.goto(`${newCustomUrl}`, { waitUntil: "load", timeout: 0 });
 
-  // Get get the list of paragraph elements that show # of entries
+  // catch invalid url
+  let validUrl = false;
 
-  const paragraphElements = await page.evaluate(() => {
-    const paragraphElements = document.querySelectorAll("p");
-    return Array.from(paragraphElements, (element) => element.textContent.trim());
-  });
-
-  // if url isnt right
-
-
-
-
-  let foundParagraphElements = [];
-  let coloredNumber;
-
-  const urlSegments = customUrl.split('/')
-  let urlName;
-  if (!urlSegments[5] == "") {
-    urlName = urlSegments[5].replace(/-/g, ' ');
-  } else {
-    const h4Elements = await page.evaluate(() => {
-      const h4Elements = document.querySelectorAll("h4");
-      return Array.from(h4Elements, (element) => element.textContent.trim());
-    });
-    for (const h4Elem of h4Elements) {
-      let h4Segments = h4Elem.split(':');
-      urlName = h4Segments[1].replace(/\s/g, '');
-    }
-  }
-
-  let paragraphNumber;
-
-  for (const paragraphElement of paragraphElements) {
-    if (paragraphElement.includes("Showing")) {
-      paragraphNumber = Number(paragraphElement.slice(19, paragraphElement.lastIndexOf(' ')));
-      coloredNumber = chalk.bold.blue(`${urlName}`) + " has " + chalk.bold.red(`${paragraphNumber}`) + " entries."
-      foundParagraphElements.push(Math.floor(paragraphNumber / 50));
-    }
-  }
-
-  if (foundParagraphElements.length == 0 || foundParagraphElements == undefined || foundParagraphElements == undefined) {
+  try {
+    await page.goto(`${newCustomUrl}`, { waitUntil: "load", timeout: 0 });
+    validUrl = true;
+  } catch (error) {
     await browser.close();
-    console.log(chalk.bold.red('Error! ') + 'Invalid url! Please try again.');
+    console.clear();
+    console.log(chalk.bold.red('Error! ') + 'Invalid url! Please try again.\n')
     for (let i = 3; i > 0; i--) {
       console.log(chalk.bold.red(i));
       if (i === 1) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         console.clear();
-        await enterCustomLink();
+        enterCustomLink();
       } else {
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
     }
-  } else {
-
-    let frequencyCheckComplete = false;
-    let newVocabOffset;
-    await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
   }
 
-  async function askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset) {
+  if (validUrl == true) {
+    const paragraphElements = await page.evaluate(() => {
+      const paragraphElements = document.querySelectorAll("p");
+      return Array.from(paragraphElements, (element) => element.textContent.trim());
+    });
+    let foundParagraphElements = [];
+    let coloredNumber;
+    const urlSegments = customUrl.split('/')
+    let urlName;
+    if (!urlSegments[5] == "") {
+      urlName = urlSegments[5].replace(/-/g, ' ');
+    } else {
+      const h4Elements = await page.evaluate(() => {
+        const h4Elements = document.querySelectorAll("h4");
+        return Array.from(h4Elements, (element) => element.textContent.trim());
+      });
+      for (const h4Elem of h4Elements) {
+        let h4Segments = h4Elem.split(':');
+        urlName = h4Segments[1].replace(/\s/g, '');
+      }
+    }
+    let paragraphNumber;
+    for (const paragraphElement of paragraphElements) {
+      if (paragraphElement.includes("Showing")) {
+        paragraphNumber = Number(paragraphElement.slice(19, paragraphElement.lastIndexOf(' ')));
+        coloredNumber = chalk.bold.blue(`${urlName}`) + " has " + chalk.bold.red(`${paragraphNumber}`) + " entries."
+        foundParagraphElements.push(Math.floor(paragraphNumber / 50));
+      }
+    }
+    if (foundParagraphElements.length == 0 || foundParagraphElements == undefined || foundParagraphElements == undefined) {
+      await browser.close();
+      console.clear();
+      console.log(chalk.bold.red('Error! ') + 'Invalid url! Please try again.\n');
+      for (let i = 3; i > 0; i--) {
+        console.log(chalk.bold.red(i));
+        if (i === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          console.clear();
+          await enterCustomLink();
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
+      }
+    } else {
+
+      let frequencyCheckComplete = false;
+      let newVocabOffset;
+      await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
+    }
+  }
+
+  async function askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser) {
     console.clear();
     console.log(coloredNumber + "\n");
 
@@ -128,28 +187,28 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
           switch (answer) {
             case '1': // Yes
               newVocabOffset = finalEntryNumber;
-              frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+              frequencyCheck(frequencyCheckComplete, page, newVocabOffset, paragraphNumber, coloredNumber, newCustomUrl, browser, finalEntryNumber, urlName);
               break;
             case '2': // No
               finalEntryNumber = 0;
-              await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+              await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
               break;
             case 'yes': // Yes
               newVocabOffset = finalEntryNumber;
-              frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+              frequencyCheck(frequencyCheckComplete, page, newVocabOffset, paragraphNumber, coloredNumber, newCustomUrl, browser, finalEntryNumber, urlName);
               break;
             case 'no': // No
               finalEntryNumber = 0;
-              await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+              await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
               break;
             default:
               console.clear()
-              console.log(chalk.bold.red('Error! ') + 'Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+              console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
                   await new Promise((resolve) => setTimeout(resolve, 800));
-                  askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+                  askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
                 } else {
                   await new Promise((resolve) => setTimeout(resolve, 800));
                 }
@@ -166,7 +225,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
           newVocabOffset = parseInt(vocabOffset);
           if (!isNaN(newVocabOffset)) { // Check if it's a valid number
             if (newVocabOffset >= 0 && newVocabOffset <= paragraphNumber) {
-              frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+              await frequencyCheck(frequencyCheckComplete, page, newVocabOffset, paragraphNumber, coloredNumber, newCustomUrl, browser, finalEntryNumber, urlName);
             } else if (newVocabOffset > paragraphNumber) {
               console.clear();
               console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('bigger ') + 'than ' + chalk.bold.red(`${paragraphNumber}`) + '!\n');
@@ -174,7 +233,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
                   await new Promise((resolve) => setTimeout(resolve, 800));
-                  askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+                  askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
                 } else {
                   await new Promise((resolve) => setTimeout(resolve, 800));
                 }
@@ -186,7 +245,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
                   await new Promise((resolve) => setTimeout(resolve, 800));
-                  askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+                  askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
                 } else {
                   await new Promise((resolve) => setTimeout(resolve, 800));
                 }
@@ -199,7 +258,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               console.log(chalk.bold.red(i));
               if (i === 1) {
                 await new Promise((resolve) => setTimeout(resolve, 800));
-                askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+                askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
               } else {
                 await new Promise((resolve) => setTimeout(resolve, 800));
               }
@@ -211,68 +270,81 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
     } else {
       let maxPages = Math.floor((Number(paragraphNumber) - Number(newVocabOffset)) / 50);
       console.clear();
-      console.log(`Max available pages: ` + chalk.bold.red(`${maxPages}`))
-      console.log(chalkYellow("Please enter the ") + chalk.bold("amount ") + chalkYellow('of ') + chalk.bold.red('pages ') + chalkYellow('to scrape') + chalk.bold.red(' ->'));
-      rl.question("", async (answer) => {
+      console.log(chalk.bold(`Max `) + `available pages: ` + chalk.bold.red(`${maxPages}`))
 
-        // error handling for invalid input
-
-        let pageAmount = answer;
-        if (pageAmount.length <= 0 || Number(pageAmount) > Number(maxPages)) {
-          console.clear();
-          console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red("less ") + 'than ' + chalk.bold.red('0 ') + "or " + chalk.bold.red("greater " + 'than ' + (`${maxPages}`) + '!\n'));
-          for (let i = 3; i > 0; i--) {
-            console.log(chalk.bold.red(i));
-            if (i === 1) {
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-            } else {
-              await new Promise((resolve) => setTimeout(resolve, 800));
-            }
+      // if there are no more pages
+      if (maxPages == 0) {
+        console.log(chalk.bold.red('\nError! ') + 'No pages to scrape!\n')
+        for (let i = 3; i > 0; i--) {
+          console.log(chalk.bold.red(i));
+          if (i === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            frequencyCheckComplete = false
+            finalEntryNumber = 0;
+            askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 800));
           }
-        } else {
-
-          // starting scraping
-          const totalPages = Math.min(Number(pageAmount), 100);
-          const parallelTasks = []; // Array to store the parallel scraping tasks
-          let trackPages = 0;
-          console.clear();
-          console.log(chalk.bold.red("Scraping") + '...');
-
-          // if i want to divide by 50 for some reason
-
-          // if (newVocabOffset % 50 !== 0) {
-          //   newVocabOffset = Math.round(newVocabOffset / 50) * 50;
-          // }
-
-          newVocabOffset = newVocabOffset - 50;
-          for (let i = 0; i <= totalPages; i++) {
-            if (i > totalPages) {
-              break;
-            }
-            newVocabOffset = newVocabOffset + 50;
-            await scrapeCustomLink(newVocabOffset, newCustomUrl, browser);
-            trackPages++;
-            finalEntryNumber = newVocabOffset;
-            console.clear();
-            console.log("Page " + chalk.bold.green(`${trackPages - 1}`) + " out of " + chalk.bold.red(`${pageAmount}`))
-          }
-
-          // end scraping and log results
-
-          console.log(newVocabOffset);
-          console.log(chalk.bold.greenBright(`Successfully `) + "scraped all " + chalk.bold.greenBright(`${totalPages}`) + " pages.");
-          scrapeSameLinkAgain(urlName, finalEntryNumber);
-
-          // section ends here
         }
-      });
+      } else {
+        console.log(chalkYellow("Please enter the ") + chalk.bold("amount ") + chalkYellow('of ') + chalk.bold.red('pages ') + chalkYellow('to scrape') + chalk.bold.red(' ->'));
+        rl.question("", async (answer) => {
+
+          // error handling for invalid input
+
+          let pageAmount = answer;
+          if (pageAmount.length <= 0 || Number(pageAmount) > Number(maxPages)) {
+            console.clear();
+            console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red("less ") + 'than ' + chalk.bold.red('0 ') + "or " + chalk.bold.red("greater " + 'than ' + (`${maxPages}`) + '!\n'));
+            for (let i = 3; i > 0; i--) {
+              console.log(chalk.bold.red(i));
+              if (i === 1) {
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
+              } else {
+                await new Promise((resolve) => setTimeout(resolve, 800));
+              }
+            }
+          } else {
+
+            // starting scraping
+            const totalPages = Math.min(Number(pageAmount), 100);
+            const parallelTasks = []; // Array to store the parallel scraping tasks
+            let trackPages = 0;
+            console.clear();
+            console.log(chalk.bold.red("Scraping") + '...');
+
+            // if i want to divide by 50 for some reason
+
+            // if (newVocabOffset % 50 !== 0) {
+            //   newVocabOffset = Math.round(newVocabOffset / 50) * 50;
+            // }
+
+            newVocabOffset = newVocabOffset - 50;
+            for (let i = 0; i <= totalPages; i++) {
+              if (i > totalPages) {
+                break;
+              }
+              newVocabOffset = newVocabOffset + 50;
+              await scrapeCustomLink(newVocabOffset, newCustomUrl, browser);
+              trackPages++;
+              finalEntryNumber = newVocabOffset;
+              console.clear();
+              console.log("Page " + chalk.bold.green(`${trackPages - 1}`) + " out of " + chalk.bold.red(`${pageAmount}`))
+            }
+
+            // end scraping and log results
+            console.log(chalk.bold.greenBright(`Successfully `) + "scraped all " + chalk.bold.greenBright(`${totalPages}`) + " pages.");
+            scrapeSameLinkAgain(urlName, finalEntryNumber, frequencyCheckComplete, newVocabOffset, browser, newCustomUrl, page, paragraphNumber, coloredNumber);
+
+            // section ends here
+          }
+        });
+      }
     }
   }
 
-
-
-  async function frequencyCheck(frequencyCheckComplete, page, newVocabOffset) {
+  async function frequencyCheck(frequencyCheckComplete, page, newVocabOffset, paragraphNumber, coloredNumber, newCustomUrl, browser, finalEntryNumber, urlName) {
     //Navigate to frequency page
     let customUrlArray = newCustomUrl.split("/");
     let index = customUrlArray.lastIndexOf("vocabulary-list"); // Find the index of "vocabulary-list"
@@ -291,7 +363,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
 
       console.clear();
       if (divElements[0] == null) {
-        console.log("Frequency is ~ " + chalk.bold.red('30') + chalk.bold(',') + chalk.bold.red('000') + chalk.bold('+'))
+        console.log("Frequency is ~ " + chalk.bold.red('30') + chalk.bold(',') + chalk.bold.red('000') + chalk.bold(' +\n'))
       } else {
         console.log("Frequency is ~ " + chalk.bold.red(`${divElements[0]}\n`))
       }
@@ -302,36 +374,36 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
         switch (newAnswer) {
           case '1':
             frequencyCheckComplete = true;
-            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
             break;
           case '2':
             frequencyCheckComplete = false;
 
-            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
             break;
           case 'yes':
             frequencyCheckComplete = true;
-            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
             break;
           case 'no':
             frequencyCheckComplete = false;
-            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
             break;
           default:
             console.clear()
             frequencyCheckComplete = false;
-            console.log('Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2!"))
+            console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2!"))
             for (let i = 3; i > 0; i--) {
               console.log(chalk.bold.red(i));
               if (i === 1) {
                 frequencyCheckComplete = false;
                 await new Promise((resolve) => setTimeout(resolve, 500));
-                await frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+                await frequencyCheck(frequencyCheckComplete, page, newVocabOffset, paragraphNumber, coloredNumber, newCustomUrl, browser, finalEntryNumber, urlName);
               } else {
                 await new Promise((resolve) => setTimeout(resolve, 800));
               }
             }
-            await frequencyCheck(frequencyCheckComplete, page, newVocabOffset);
+            await frequencyCheck(frequencyCheckComplete, page, newVocabOffset, paragraphNumber, coloredNumber, newCustomUrl, browser, finalEntryNumber, urlName);
             break;
         }
       })
@@ -339,63 +411,103 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
   }
 
 
-  function scrapeSameLinkAgain(urlName, finalEntryNumber) {
+  function scrapeSameLinkAgain(urlName, finalEntryNumber, frequencyCheckComplete, newVocabOffset, browser, newCustomUrl, page, paragraphNumber, coloredNumber) {
 
     rl.question(chalkYellow('\nWould you like to scrape again?') + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
+      let scrapeAgain;
       switch (answer) {
         case '1':
+          scrapeAgain = true;
           break;
         case '2':
-          console.clear()
-          console.log(chalk.bold.yellowBright('Goodbye!'))
-          process.exit();
+          scrapeAgain = false;
+          break;
         case 'yes':
+          scrapeAgain = true;
           break;
         case 'no':
-          console.clear()
-          console.log(chalk.bold.yellowBright('Goodbye!'))
-          process.exit();
+          scrapeAgain = false;
+          break;
         default:
           console.clear()
-          console.log(chalk.bold.red('Error! ') + 'Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+          console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
           for (let i = 3; i > 0; i--) {
             console.log(chalk.bold.red(i));
             if (i === 1) {
               await new Promise((resolve) => setTimeout(resolve, 500));
-              scrapeSameLinkAgain(urlName, finalEntryNumber);
+              scrapeSameLinkAgain(urlName, finalEntryNumber, frequencyCheckComplete, newVocabOffset, browser, newCustomUrl, page, paragraphNumber, coloredNumber);
             } else {
               await new Promise((resolve) => setTimeout(resolve, 800));
             }
           }
-          scrapeSameLinkAgain(urlName, finalEntryNumber);
+          scrapeSameLinkAgain(urlName, finalEntryNumber, frequencyCheckComplete, newVocabOffset, browser, newCustomUrl, page, paragraphNumber, coloredNumber);
           break;
       }
+      if (scrapeAgain == true) {
+        console.clear();
+        rl.question('Scrape ' + chalk.bold.red(`${urlName}`) + ' again?' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (sameLink) => {
+          if (Number(sameLink) == 1) {
+            frequencyCheckComplete = false;
+            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
+          } else if (Number(sameLink) == 2) {
+            console.clear();
+            finalEntryNumber = 0;
+            enterCustomLink();
+          } else {
+            console.clear();
+            console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+            for (let i = 3; i > 0; i--) {
+              console.log(chalk.bold.red(`\n${i}`));
+              if (i === 1) {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
+              } else {
+                await new Promise((resolve) => setTimeout(resolve, 800));
+              }
+            }
+            scrapeSameLinkAgain(urlName, finalEntryNumber, frequencyCheckComplete, newVocabOffset, browser, newCustomUrl, page, paragraphNumber, coloredNumber);
+          }
+        });
+      } else if (scrapeAgain == false) {
+        askSorting();
+      }
     });
-    rl.question('\nScrape ' + chalk.bold.red(`${urlName}`) + ' again?' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (sameLink) => {
-      if (Number(sameLink) == 1) {
-        frequencyCheckComplete = false;
-        askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
-      } else if (Number(sameLink) == 2) {
+  }
+}
+
+async function askSorting() {
+  console.clear();
+  rl.question(chalkYellow("Would you like to sort scraped words by frequency?") + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
+    switch (answer) {
+      case '1':
+        sorter.sortWords();
+        break;
+      case '2':
         console.clear();
-        finalEntryNumber = 0;
-        enterCustomLink();
-      } else {
+        console.log(chalk.bold.blue('Goodbye!'));
+        process.exit();
+      case 'yes':
+        sorter.sortWords();
+        break;
+      case 'no':
         console.clear();
-        console.log(chalk.bold.red('Error! ') + 'Please enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+        console.log(chalk.bold.blue('Goodbye!'));
+        process.exit();
+      default:
+        console.clear()
+        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
         for (let i = 3; i > 0; i--) {
-          console.log(chalk.bold.red(`\n${i}`));
+          console.log(chalk.bold.red(i));
           if (i === 1) {
             await new Promise((resolve) => setTimeout(resolve, 500));
-            await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset);
+            await sortWords();
           } else {
             await new Promise((resolve) => setTimeout(resolve, 800));
           }
         }
-        scrapeSameLinkAgain(urlName, finalEntryNumber);
-      }
-    });
-  }
-
+        break;
+    }
+  })
 }
 
 async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
@@ -488,7 +600,7 @@ async function writeKanji(rubyWords) {
       const newData = rubyWords.join("\n") + "\n";
 
       // Append the data to the file asynchronously
-      const outputFilePath = "./output/kanji_words.txt";
+      const outputFilePath = "./words/words.txt";
       await fs.promises.appendFile(outputFilePath, newData);
 
       //console.log(``);
