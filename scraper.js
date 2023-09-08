@@ -4,11 +4,6 @@ const fs = require("fs").promises;
 const chalk = require("chalk");
 const { stdout } = require("process");
 
-module.exports = {
-  startProgram
-};
-
-
 process.setMaxListeners(100); // You can adjust the number based on your needs
 
 const rl = readline.createInterface({
@@ -24,7 +19,7 @@ startProgram();
 
 async function startProgram() {
   console.clear()
-  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('->\n') + chalk.bold.yellow('\n[1] Word Scraper\n') + chalk.bold.blue('[2] Frequency Sorter\n') + chalk.bold.red('[3] Clear Output Files\n'), async (answer) => {
+  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('->\n') + chalk.bold.yellow('\n[1] Word Scraper\n') + chalk.bold.blue('[2] Frequency Sorter\n') + chalk.bold.red('[3] Clear Output Files\n') + chalk.bold.cyan('[4] Suggested Links\n'), async (answer) => {
     switch (answer) {
       case '1':
         console.clear();
@@ -38,9 +33,13 @@ async function startProgram() {
         console.clear();
         await clearFiles();
         break;
+      case '4':
+        console.clear();
+        await suggestLinks();
+        break;
       default:
         console.clear()
-        console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold.yellow("1 ") + "or " + chalk.bold.blue("2 ") + "or " + chalk.bold.red("3" + '!'));
+        console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold.yellow("1 ") + "/ " + chalk.bold.blue("2 ") + "/ " + chalk.bold.red("3 ") + "/ " + chalk.bold.cyan("4") + '!');
         for (let i = 3; i > 0; i--) {
           console.log(chalk.bold.red(i));
           if (i === 1) {
@@ -62,7 +61,7 @@ async function enterCustomLink() {
   console.log(chalk.blue("https://jpdb.io/prebuilt_decks?sort_by=word_count&order=reverse\n"));
   console.log(chalkYellow("Enter an Anime / Novel Url ") + chalk.bold.red("->"));
   rl.question("", async (customUrl) => {
-    if (customUrl.length < 7 && customUrl.includes("/vocabulary-list") && customUrl.includes("jpdb.io/")) {
+    if (customUrl.length < 7 && customUrl.includes("/vocabulary-list") && customUrl.includes("https://jpdb.io/")) {
       console.clear();
       console.log(chalk.bold.red("Invalid! ") + ("Url must be" + chalk.bold.red("longer") + "than" + chalk.bold.red("7") + "characters.\n"));
       console.log(chalk.bold("Example Link: "));
@@ -76,7 +75,7 @@ async function enterCustomLink() {
       console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
       await enterCustomLink();
     }
-    else if ((!customUrl.includes("/vocabulary-list")) || (!customUrl.includes("//jpdb.io/"))) {
+    else if ((!customUrl.includes("/vocabulary-list")) || (!customUrl.includes("https://jpdb.io/"))) {
       console.clear();
       console.log(chalk.bold.red("Invalid! ") + "Only enter anime/novel's " + chalk.bold.yellowBright("vocabulary list ") + "url.\n");
       console.log(chalk.bold.yellowBright("Example Link: "));
@@ -112,16 +111,14 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
 
   const page = await browser.newPage();
 
-  // catch invalid url
-  let validUrl = false;
+  // catch invalid url;
+  let validUrl = true;
 
   try {
     await page.goto(`${newCustomUrl}`, { waitUntil: "load", timeout: 0 });
-    validUrl = true;
   } catch (error) {
-    await browser.close();
-    console.clear();
-    console.log(chalk.bold.red('Error! ') + 'Invalid url! Please try again.')
+    validUrl = false;
+    console.log(chalk.bold.red('Error! ') + 'Invalid url. Please try again.')
     for (let i = 3; i > 0; i--) {
       console.log(chalk.bold.red(i));
       if (i === 1) {
@@ -129,33 +126,51 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
         console.clear();
         browser.close();
         enterCustomLink();
+        break;
       } else {
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
     }
   }
 
-  if (validUrl == true) {
-    const paragraphElements = await page.evaluate(() => {
-      const paragraphElements = document.querySelectorAll("p");
-      return Array.from(paragraphElements, (element) => element.textContent.trim());
-    });
-    let foundParagraphElements = [];
-    let coloredNumber;
-    const urlSegments = customUrl.split('/')
-    let urlName;
-    if (!urlSegments[5] == "") {
-      urlName = urlSegments[5].replace(/-/g, ' ');
-    } else {
-      const h4Elements = await page.evaluate(() => {
-        const h4Elements = document.querySelectorAll("h4");
-        return Array.from(h4Elements, (element) => element.textContent.trim());
-      });
-      for (const h4Elem of h4Elements) {
-        let h4Segments = h4Elem.split(':');
-        urlName = h4Segments[1].replace(/\s/g, '');
+  const paragraphElements = await page.evaluate(() => {
+    const paragraphElements = document.querySelectorAll("p");
+    return Array.from(paragraphElements, (element) => element.textContent.trim());
+  });
+  let foundParagraphElements = [];
+  let coloredNumber;
+  const urlSegments = customUrl.split('/')
+  let urlName;
+
+  const h4Elements = await page.evaluate(() => {
+    const h4Elements = document.querySelectorAll("h4");
+    return Array.from(h4Elements, (element) => element.textContent.trim());
+  });
+
+  for (const h4Elem of h4Elements) {
+    try {
+      const colonIndex = h4Elem.indexOf(':'); // Find the index of the first ":"
+      urlName = colonIndex !== -1 ? h4Elem.slice(colonIndex + 1).trim() : h4Elem.trim();
+    } catch {
+      validUrl = false;
+      console.log(chalk.bold.red('Error! ') + 'Invalid url. Please try again.')
+      for (let i = 3; i > 0; i--) {
+        console.log(chalk.bold.red(i));
+        if (i === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          console.clear();
+          browser.close();
+          enterCustomLink();
+          break;
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
       }
     }
+
+  }
+
+  if (validUrl == true) {
     let paragraphNumber;
     for (const paragraphElement of paragraphElements) {
       if (paragraphElement.includes("Showing")) {
@@ -337,7 +352,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
                 break;
               }
               newVocabOffset = newVocabOffset + 50;
-              await scrapeCustomLink(newVocabOffset, newCustomUrl, browser);
+              await scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName);
               trackPages++;
               finalEntryNumber = newVocabOffset;
               console.clear();
@@ -487,11 +502,28 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
   }
 }
 
+async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) {
 
-async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
-  // const browser = await puppeteer.launch({
-  //   headless: "new",
-  // });
+  let linksFile = (await fs.readFile('./suggest/links.txt', 'utf8')).split('\n');
+  let linkExists = false;
+
+  if (linksFile[0] == "") {
+    await fs.appendFile('./suggest/links.txt', `[1] ${urlName}:${newCustomUrl}\n`);
+  } else {
+    for (const link of linksFile) {
+      if (link !== "") {
+        const splitLinks = link.split(/:|]/);
+        if (splitLinks[1].trim() == urlName) {
+          linkExists = true;
+          break;
+        }
+      }
+    }
+
+    if (!linkExists) {
+      await fs.appendFile('./suggest/links.txt', `[${linksFile.length}] ${urlName}:${newCustomUrl}\n`);
+    }
+  }
 
   const page2 = await browser.newPage();
 
@@ -503,7 +535,6 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
   if (index !== -1) {
     modifiedCustomUrl = customUrlArray.slice(0, index).join("/");
     let vocabListLink = `${modifiedCustomUrl}/vocabulary-list?sort_by=by-frequency-global&offset=${newVocabOffset}`;
-
     // Increase the timeout to 180 seconds (3 minutes)
     try {
       await page2.goto(`${vocabListLink}`, { waitUntil: "load", timeout: 0 });
@@ -512,9 +543,6 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
       console.log(`Error! Could not navigate to page!\n ${error}`)
       process.exit();
     }
-
-
-
   } else {
     console.log(`Error ${newCustomUrl}`);
   }
@@ -656,7 +684,9 @@ async function clearFiles() {
       console.clear();
       try {
         let counter = 0;
-        const outputFiles = ['word.txt', 'sorted.txt']; // Use fs.readdirSync for a synchronous operation
+        const outputFiles = ['word.txt', 'sorted.txt'];
+        fs.writeFile('./output/words.txt', '');
+        fs.writeFile('./output/sorted.txt', '');
         for (const file of outputFiles) {
           counter++;
           stdout.write(('\rCleared ') + chalk.bold.red(`${counter}`) + ' of ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
@@ -754,9 +784,9 @@ async function sortWords() {
       for (const scrapedWord of scrapedWords) {
         counter++;
         if (!processedWords.has(scrapedWord)) {
-          //process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldYellow(`[ `) + cc.boldRed(`${counter}`) + cc.boldYellow(` ] `) + cc.boldBlue(`${scrapedWord}`) + cc.yellow(' of ') + cc.boldYellow(`[ `) + cc.boldRed(`${scrapedWord.length}`) + cc.boldYellow(` ] `));
-          //process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldYellow(`[ `) + cc.boldBlue(`${scrapedWord}`) + cc.boldYellow(']'));
-          process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldBlue(`${scrapedWord}`));
+          //process.stdout.write(cc.boldRed(`\r${ loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word`) + cc.boldRed(': ') + cc.boldYellow(`[`) + cc.boldRed(`${ counter }`) + cc.boldYellow(` ]`) + cc.boldBlue(`${ scrapedWord }`) + cc.yellow(' of ') + cc.boldYellow(`[`) + cc.boldRed(`${ scrapedWord.length }`) + cc.boldYellow(` ]`));
+          //process.stdout.write(cc.boldRed(`\r${ loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word`) + cc.boldRed(': ') + cc.boldYellow(`[`) + cc.boldBlue(`${ scrapedWord }`) + cc.boldYellow(']'));
+          process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word`) + cc.boldRed(': ') + cc.boldBlue(`${scrapedWord}`));
           animationIndex = (animationIndex + 1) % loadingAnimation.length;
 
           const matchingEntry = yomichanDictionaries.map((dictionary) => dictionary.find((entry) => entry[0] === scrapedWord)).find(Boolean);
@@ -788,3 +818,211 @@ async function sortWords() {
   }
 
 };
+
+async function suggestLinks() {
+
+  const linksMain = (await fs.readFile('./suggest/links.txt', "utf-8")).split("\n");
+  let links = [...linksMain];
+
+  let counter = 0;
+
+  async function displayNames(counter) {
+
+    // first page of links
+    if (counter - 8 < 0 || counter == 0) {
+      console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('->\n'))
+      // Display 8 link names
+      for (const link of links) {
+        if (link !== "" && counter !== 8 && counter !== linksMain.length) {
+          counter++
+          const splitLink = link.split(':')
+          const name = splitLink[0];
+          const href = 'https' + `${splitLink[2]}`;
+          // display the link name 
+          console.log(chalk.hex(colors[counter - 1]).bold(`${name}`))
+        }
+      }
+      if (counter !== linksMain.length) {
+        // ask for input
+        console.log(chalkYellow('\nEnter ') + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + chalkYellow(' for') + chalk.bold.red(' Next') + chalkYellow(' Page ') + chalk.bold.red('->'))
+        rl.question('', async (answer) => {
+          switch (answer) {
+            case '+':
+              counter = 8;
+              displayNames(counter);
+              break;
+            default:
+              console.clear();
+              console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + '!');
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  console.clear();
+                  counter = 0;
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 300));
+                }
+              }
+
+          }
+
+        })
+      } else {
+        // no more pages
+      }
+
+
+    }
+    // last page of links
+    else if (counter + 7 >= linksMain.length - 1) {
+
+      links = [...linksMain];
+      const splicedLinks = links.splice(counter);
+      console.clear();
+      console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('->\n'))
+      // Display 8 link names
+      let colorCounter = 0;
+      // Display 8 link names
+      for (const link of splicedLinks) {
+        if (link !== "" && colorCounter !== 8 && counter !== linksMain.length) {
+          colorCounter++
+          counter++
+          const splitLink = link.split(':')
+          const name = splitLink[0];
+          const href = 'https' + `${splitLink[2]}`;
+          // display the link name 
+          console.log(chalk.hex(colors[colorCounter - 1]).bold(`${name}`))
+        }
+      }
+      // log question 
+      console.log(chalk.bold.red('\n<- ') + chalkYellow('Enter ') + chalk.bold("'") + chalk.bold.red('-') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.red('Previous ') + chalkYellow('Page '))
+
+      // ask for input
+      rl.question('', async (answer) => {
+        switch (answer) {
+          case '-':
+            //counter -= ((linksMain.length - 1) - links.length) - 8;
+            if (counter - 8 == 0 || counter - 8 < 0) {
+              counter = 0;
+              console.clear();
+              displayNames(counter);
+            } else {
+              counter = links.length
+              counter -= 8;
+              console.clear();
+              displayNames(counter);
+            }
+            break;
+          default:
+            console.clear();
+            console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + '!');
+            for (let i = 3; i > 0; i--) {
+              console.log(chalk.bold.red(i));
+              if (i === 1) {
+                await new Promise((resolve) => setTimeout(resolve, 300));
+                console.clear();
+                counter -= (linksMain.length - 1) - links.length;
+                displayNames(counter);
+                break;
+              } else {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+              }
+            }
+        }
+
+      })
+    }
+    // in between pages of links
+    else {
+      links = [...linksMain];
+      const splicedLinks = links.splice(counter);
+      console.clear();
+      console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('->\n'))
+      let colorCounter = 0;
+      // Display 8 link names
+      for (const link of splicedLinks) {
+        if (link !== "" && colorCounter !== 8 && counter !== linksMain.length) {
+          colorCounter++
+          counter++
+          const splitLink = link.split(':')
+          const name = splitLink[0];
+          const href = 'https' + `${splitLink[2]}`;
+          // display the link name 
+          console.log(chalk.hex(colors[colorCounter - 1]).bold(`${name}`))
+        }
+      }
+
+      //logging question 
+      console.log(chalkYellow('\nEnter ') + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.red('Next ') + chalkYellow('Page ') + chalk.bold.red('->\n'))
+      console.log(chalk.bold.blue('<- ') + chalkYellow('Enter ') + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.blue('Previous ') + chalkYellow('Page '))
+
+      // ask for input
+      rl.question('', async (answer) => {
+        switch (answer) {
+          case '+':
+            displayNames(counter);
+            break;
+          case '-':
+            if (counter - 8 == 0) {
+              counter = 0;
+              console.clear();
+              displayNames(counter);
+            } else {
+              counter -= 16;
+              console.clear();
+              displayNames(counter);
+            }
+            break;
+          default:
+            console.clear();
+            console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + '!');
+            for (let i = 3; i > 0; i--) {
+              console.log(chalk.bold.red(i));
+              if (i === 1) {
+                await new Promise((resolve) => setTimeout(resolve, 300));
+                console.clear();
+                counter -= 8;
+                displayNames(counter);
+                break;
+              } else {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+              }
+            }
+        }
+
+      })
+    }
+  }
+
+  if (links[0] == "") {
+    console.clear();
+    console.log(chalk.bold.red('Error! ') + 'There are no links in ' + chalk.bold.red('links.txt') + '!')
+    for (let i = 3; i > 0; i--) {
+      console.log(chalk.bold.red(i));
+      if (i === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        startProgram();
+        break;
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+    }
+  }
+
+  colors = [
+    '7AC757',
+    'A9C841',
+    'D7C633',
+    'FD7835',
+    'FF5833',
+    'FF5447',
+    'FF6C47',
+    'FF8547',
+  ];
+
+  await displayNames(counter)
+
+}
