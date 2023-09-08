@@ -16,10 +16,9 @@ const chalkYellow = chalk.hex('#Ffce00'); // Using the hex code for gold color
 
 startProgram();
 
-
 async function startProgram() {
   console.clear()
-  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('->\n') + chalk.bold.yellow('\n[1] Word Scraper\n') + chalk.bold.blue('[2] Frequency Sorter\n') + chalk.bold.red('[3] Clear Output Files\n') + chalk.bold.cyan('[4] Suggested Links\n'), async (answer) => {
+  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('->\n') + chalk.bold.yellow('\n[1] Word Scraper\n') + chalk.bold.blue('[2] Frequency Sorter\n') + chalk.bold.magenta('[3] Kanji Sorter\n') + chalk.bold.cyan('[4] Suggested Links\n') + chalk.bold.red('[5] Clear Output Files\n'), async (answer) => {
     switch (answer) {
       case '1':
         console.clear();
@@ -27,19 +26,23 @@ async function startProgram() {
         break;
       case '2':
         console.clear();
-        sortWords();
+        await sortWords();
         break;
       case '3':
         console.clear();
-        await clearFiles();
+        await sortByKanji();
         break;
       case '4':
         console.clear();
         await suggestLinks();
         break;
+      case '5':
+        console.clear();
+        await clearFiles();
+        break;
       default:
         console.clear()
-        console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold.yellow("1 ") + "/ " + chalk.bold.blue("2 ") + "/ " + chalk.bold.red("3 ") + "/ " + chalk.bold.cyan("4") + '!');
+        console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold.yellow("1 ") + "/ " + chalk.bold.blue("2 ") + "/ " + chalk.bold.red("3 ") + "/ " + chalk.bold.cyan("4") + " / " + chalk.bold.magenta("5") + '!');
         for (let i = 3; i > 0; i--) {
           console.log(chalk.bold.red(i));
           if (i === 1) {
@@ -566,9 +569,9 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) 
 
   if (!hasNextPage) {
     console.clear();
-    console.log("Final page reached!\n");
+    console.log(chalk.bold.red("Final page reached!\n"));
     await browser.close();
-    process.exit();
+    await askSorting();
   }
 
   // Get list of ruby words
@@ -597,45 +600,19 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) 
   await page2.close();
 }
 
-async function writeKanji(rubyWords) {
-  if (rubyWords.length === 0) {
-    console.log(`No kanji words to write.`);
-  } else {
-    try {
-      // Prepare the data to be appended with a newline
-      const newData = rubyWords.join("\n") + "\n";
-
-      // Append the data to the file asynchronously
-      const outputFilePath = "./output/words.txt";
-      await fs.appendFile(outputFilePath, newData);
-
-      //console.log(``);
-    } catch (error) {
-      console.error(`Error writing to file: ${error}`);
-      process.exit();
-    }
-  }
-}
-
 async function askSorting() {
   console.clear();
-  rl.question(chalkYellow("Would you like to sort scraped words by frequency?") + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
+  rl.question(chalkYellow("Would you like to") + chalk.bold.green(' Sort ') + chalkYellow("scraped words by ") + chalk.bold.blue('Frequency') + chalkYellow(' or ') + chalk.bold.magenta('Kanji') + chalkYellow('?\n') + chalk.bold.greenBright(chalk.bold.blue('\n[1] Frequency')) + chalk.bold.magenta(('\n[2] Kanji')) + chalk.bold.red(('\n[3] No Thanks\n')), async (answer) => {
     switch (answer) {
       case '1':
         await sortWords();
-        await startProgram();
         break;
       case '2':
-        console.clear();
-        console.log(chalk.bold.blue('Goodbye!'));
-        process.exit();
-      case 'yes':
-        await sortWords();
-        await startProgram();
+        await sortByKanji();
         break;
-      case 'no':
+      case '3':
         console.clear();
-        console.log(chalk.bold.blue('Goodbye!'));
+        stdout.write(chalk.bold.blue('Goodbye!\n'));
         process.exit();
       default:
         console.clear()
@@ -650,64 +627,6 @@ async function askSorting() {
           }
         }
         break;
-    }
-
-  })
-}
-
-async function clearFiles() {
-  console.clear();
-  trulyClear = false;
-  rl.question(chalk.bold.red('Are you sure ') + 'you would like to clear ' + chalk.red.bold('all ') + 'files?\n' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
-    switch (answer) {
-      case '1':
-        trulyClear = true
-        break;
-      case '2':
-        startProgram();
-        break;
-      default:
-        console.clear()
-        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
-        for (let i = 3; i > 0; i--) {
-          console.log(chalk.bold.red(i));
-          if (i === 1) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            await clearFiles();
-          } else {
-            await new Promise((resolve) => setTimeout(resolve, 800));
-          }
-        }
-        break;
-    }
-    if (trulyClear == true) {
-      console.clear();
-      try {
-        let counter = 0;
-        const outputFiles = ['word.txt', 'sorted.txt'];
-        fs.writeFile('./output/words.txt', '');
-        fs.writeFile('./output/sorted.txt', '');
-        for (const file of outputFiles) {
-          counter++;
-          stdout.write(('\rCleared ') + chalk.bold.red(`${counter}`) + ' of ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
-        }
-
-        if (counter === outputFiles.length) {
-          console.log(chalk.bold.greenBright('\nSuccessfully ') + 'cleared all ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
-          for (let i = 3; i > 0; i--) {
-            console.log(chalk.bold.red(i));
-            if (i === 1) {
-              await new Promise((resolve) => setTimeout(resolve, 200));
-              startProgram();
-            } else {
-              await new Promise((resolve) => setTimeout(resolve, 300));
-            }
-          }
-        }
-
-      } catch (error) {
-        console.log(error);
-      }
     }
 
   })
@@ -758,10 +677,10 @@ async function sortWords() {
       for (let i = 3; i > 0; i--) {
         console.log(chalk.bold.red(i));
         if (i === 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 800));
           startProgram();
         } else {
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
     } else {
@@ -806,11 +725,11 @@ async function sortWords() {
       const formattedConsoleMessages = sortedMessages.map(({ word, value }) => `'${word}': "${value}"`);
 
       //console.log("\nWriting formatted console messages to 'formatted_console_output.txt'...");
-      await fs.writeFile("./output/sorted.txt", formattedConsoleMessages.join("\n"), { encoding: "utf-8" });
+      await fs.writeFile("./output/frequency.txt", formattedConsoleMessages.join("\n"), { encoding: "utf-8" });
 
       console.clear();
       console.log(cc.boldGreen("Successfully ") + cc.yellow('sorted ') + cc.boldGreen(`${counter}`) + ' of ' + cc.boldRed(`${scrapedWords.length} `) + cc.yellow('words\n'));
-      console.log(cc.boldRed(`${scrapedWords.length} `) + cc.yellow("words have been written to ") + cc.boldRed("'sorted.txt'") + ".");
+      console.log(cc.boldRed(`${scrapedWords.length} `) + cc.yellow("words have been written to ") + cc.boldRed("'frequency.txt'") + ".");
       process.exit();
     }
   } catch (error) {
@@ -833,7 +752,7 @@ async function suggestLinks() {
       console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('->\n'))
       // Display 8 link names
       for (const link of links) {
-        if (link !== "" && counter !== 8 && counter !== linksMain.length) {
+        if (link !== "" && counter !== 8 && counter !== linksMain.length - 1) {
           counter++
           const splitLink = link.split(':')
           const name = splitLink[0];
@@ -842,7 +761,8 @@ async function suggestLinks() {
           console.log(chalk.hex(colors[counter - 1]).bold(`${name}`))
         }
       }
-      if (counter !== linksMain.length) {
+      if (counter !== linksMain.length - 1) {
+        console.log(counter)
         // ask for input
         console.log(chalkYellow('\nEnter ') + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + chalkYellow(' for') + chalk.bold.red(' Next') + chalkYellow(' Page ') + chalk.bold.red('->'))
         rl.question('', async (answer) => {
@@ -1025,4 +945,151 @@ async function suggestLinks() {
 
   await displayNames(counter)
 
+}
+
+async function sortByKanji() {
+
+
+  console.clear();
+  let knownKanji;
+  let words;
+
+  try {
+    words = (await fs.readFile('./output/words.txt', 'utf-8')).split('\n');
+  } catch (error) {
+    console.log(chalk.bold.red('Error!') + ' There are no words in ' + chalk.bold.red('words.txt') + '!\n')
+  }
+  try {
+    let knownKanji = (await fs.readFile('./kanji/knownkanji.txt', 'utf-8')).replace(/[\r\n]/g, '');
+  } catch (error) {
+    console.log(chalk.bold.red('Error!') + ' There are no words in ' + chalk.bold.red('knownkanji.txt') + '!\n')
+  }
+  const allKanji = (await fs.readFile('./kanji/allkanji.txt', 'utf-8')).replace(/[\r\n]/g, '');
+
+  if (words[0] == "") {
+    console.clear();
+    console.log(chalk.bold.red('Error! ') + ('There are no words in ') + chalk.bold.red(`words.txt`) + '!')
+    for (let i = 3; i > 0; i--) {
+      console.log(chalk.bold.red(i));
+      if (i === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        startProgram();
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+  } else {
+    //make arrays from files 
+    //const kanjiArray = Array.from(knownKanji);
+    const wordsArray = Array.from(words);
+    const allKanjiArray = Array.from(allKanji);
+    let counter = 0;
+    let kanjiCounter = 0;
+    let newChar = '';
+    charCounter = 0;
+    const foundWords = []
+
+    for (const kanji of allKanjiArray) {
+      kanjiCounter++;
+      for (const word of wordsArray) {
+        let charCounter = 0; // Reset charCounter for each new word
+        for (const char of word) {
+          charCounter++;
+          newChar = word.charAt(charCounter - 1); // Use charCounter - 1 to access characters correctly
+          if (newChar.includes(kanji) && !foundWords.includes(word)) { // Check if newChar contains the kanji
+            foundWords.push(word);
+            fs.appendFile('./output/kanji.txt', word + '\n');
+            stdout.write(chalk.bold.greenBright('Successfully ') + 'sorted ' + chalk.bold.red(`${kanjiCounter}`) + ' kanji' + ' from ' + chalk.bold.red(`${wordsArray.length - 1}`) + ' words\r');
+            break; // Exit the loop once a match is found in the word
+          }
+        }
+      }
+    }
+
+    const kanjiFile = (await fs.readFile('./output/kanji.txt', 'utf-8')).split('\n');
+    console.log(chalk.bold.red(`\n${kanjiFile.length - 1} `) + ("words have been written to ") + chalk.bold.red("'kanji.txt'") + ".");
+    process.exit();
+
+
+  }
+
+}
+
+async function clearFiles() {
+  console.clear();
+  trulyClear = false;
+  rl.question(chalk.bold.red('Are you sure ') + 'you would like to clear ' + chalk.red.bold('all ') + 'files?\n' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
+    switch (answer) {
+      case '1':
+        trulyClear = true
+        break;
+      case '2':
+        startProgram();
+        break;
+      default:
+        console.clear()
+        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
+        for (let i = 3; i > 0; i--) {
+          console.log(chalk.bold.red(i));
+          if (i === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            await clearFiles();
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
+        }
+        break;
+    }
+    if (trulyClear == true) {
+      console.clear();
+      try {
+        let counter = 0;
+        const outputFiles = ['words.txt', 'frequency.txt', 'kanji.txt'];
+        fs.writeFile('./output/words.txt', '');
+        fs.writeFile('./output/frequency.txt', '');
+        fs.writeFile('./output/kanji.txt', '');
+        for (const file of outputFiles) {
+          counter++;
+          stdout.write(('\rCleared ') + chalk.bold.red(`${counter}`) + ' of ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
+        }
+
+        if (counter === outputFiles.length) {
+          console.log(chalk.bold.greenBright('\nSuccessfully ') + 'cleared all ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
+          for (let i = 3; i > 0; i--) {
+            console.log(chalk.bold.red(i));
+            if (i === 1) {
+              await new Promise((resolve) => setTimeout(resolve, 200));
+              startProgram();
+            } else {
+              await new Promise((resolve) => setTimeout(resolve, 300));
+            }
+          }
+        }
+
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+  })
+}
+
+async function writeKanji(rubyWords) {
+  if (rubyWords.length === 0) {
+    console.log(`No kanji words to write.`);
+  } else {
+    try {
+      // Prepare the data to be appended with a newline
+      const newData = rubyWords.join("\n") + "\n";
+
+      // Append the data to the file asynchronously
+      const outputFilePath = "./output/words.txt";
+      await fs.appendFile(outputFilePath, newData);
+
+      //console.log(``);
+    } catch (error) {
+      console.error(`Error writing to file: ${error}`);
+      process.exit();
+    }
+  }
 }
