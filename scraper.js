@@ -14,6 +14,7 @@ const rl = readline.createInterface({
 const frequentlyUsedLinks = []
 const chalkYellow = chalk.hex('#Ffce00'); // Using the hex code for gold color
 
+let finalEntryNumber = 0;
 startProgram();
 
 async function startProgram() {
@@ -59,7 +60,7 @@ async function startProgram() {
 }
 
 async function enterCustomLink() {
-  let finalEntryNumber = 0;
+  finalEntryNumber = 0;
   console.log(chalk.bold(chalk.bold.red("Anime ") + "& " + chalk.bold.red("Novel ") + "links:"));
   console.log(chalk.blue("https://jpdb.io/prebuilt_decks?sort_by=word_count&order=reverse\n"));
   console.log(chalkYellow("Enter an Anime / Novel Url ") + chalk.bold.red("->"));
@@ -86,13 +87,13 @@ async function enterCustomLink() {
       for (let i = 3; i > 0; i--) {
         console.log(chalk.bold.red(i));
         if (i === 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1100));
+          await new Promise((resolve) => setTimeout(resolve, 500));
           console.clear();
           console.log(chalk.bold.yellowBright("Example Link: "));
           console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
           await enterCustomLink();
         } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 700));
         }
       }
     }
@@ -104,7 +105,7 @@ async function enterCustomLink() {
 
 async function foundcustomUrl(customUrl, finalEntryNumber) {
   console.clear();
-  console.log(chalk.bold.red("Loading...\n"));
+  console.log(chalk.bold.red("Loading") + chalk.bold("...\n"));
 
   const newCustomUrl = customUrl.toString();
   const browser = await puppeteer.launch({
@@ -507,26 +508,34 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
 
 async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) {
 
+
+  // suggest links file
   let linksFile = (await fs.readFile('./suggest/links.txt', 'utf8')).split('\n');
   let linkExists = false;
+  let linksFileCounter = 0;
 
   if (linksFile[0] == "") {
-    await fs.appendFile('./suggest/links.txt', `[1] ${urlName}:${newCustomUrl}\n`);
+    await fs.appendFile('./suggest/links.txt', `[1] ${urlName}_${newCustomUrl}\n`);
   } else {
     for (const link of linksFile) {
       if (link !== "") {
-        const splitLinks = link.split(/:|]/);
-        if (splitLinks[1].trim() == urlName) {
+        linksFileCounter++;
+        const splitLinks = link.split(/_|]/);
+        if (splitLinks[1].trim() == urlName.trim()) {
           linkExists = true;
           break;
         }
       }
     }
-
-    if (!linkExists) {
-      await fs.appendFile('./suggest/links.txt', `[${linksFile.length}] ${urlName}:${newCustomUrl}\n`);
-    }
   }
+
+  if (linkExists == false) {
+    ((linksFile.length - 1) % 8 === 0)
+      ? (linksFileCounter = 1, await fs.appendFile('./suggest/links.txt', `[${linksFileCounter}] ${urlName}_${newCustomUrl}\n`))
+      : await fs.appendFile('./suggest/links.txt', `[${linksFileCounter + 1}] ${urlName}_${newCustomUrl}\n`);
+  }
+
+  // scraping
 
   const page2 = await browser.newPage();
 
@@ -612,8 +621,17 @@ async function askSorting() {
         break;
       case '3':
         console.clear();
-        stdout.write(chalk.bold.blue('Goodbye!\n'));
-        process.exit();
+        for (let i = 3; i > 0; i--) {
+          console.log(chalk.bold.red(i));
+          if (i === 1) {
+            frequencyCheckComplete = false;
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            stdout.write(chalk.bold.blue('Goodbye!\n'));
+            process.exit();
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        }
       default:
         console.clear()
         console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
@@ -738,15 +756,15 @@ async function sortWords() {
 
 };
 
-async function suggestLinks() {
+async function suggestLinks(customUrl, finalEntryNumber) {
 
+  finalEntryNumber = null
   const linksMain = (await fs.readFile('./suggest/links.txt', "utf-8")).split("\n");
   let links = [...linksMain];
-
   let counter = 0;
+  let currentHrefArray = [];
 
   async function displayNames(counter) {
-
     // first page of links
     if (counter - 8 < 0 || counter == 0) {
       console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('->\n'))
@@ -754,26 +772,149 @@ async function suggestLinks() {
       for (const link of links) {
         if (link !== "" && counter !== 8 && counter !== linksMain.length - 1) {
           counter++
-          const splitLink = link.split(':')
+          const splitLink = link.split('_')
           const name = splitLink[0];
-          const href = 'https' + `${splitLink[2]}`;
+          const href = `${splitLink[1]}`;
+
           // display the link name 
+          currentHrefArray.push(href);
           console.log(chalk.hex(colors[counter - 1]).bold(`${name}`))
         }
       }
       if (counter !== linksMain.length - 1) {
-        console.log(counter)
         // ask for input
         console.log(chalkYellow('\nEnter ') + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + chalkYellow(' for') + chalk.bold.red(' Next') + chalkYellow(' Page ') + chalk.bold.red('->'))
-        rl.question('', async (answer) => {
+        rl.question(chalk.bold.blue('\nSelect ') + chalk.bold(': '), async (answer) => {
           switch (answer) {
             case '+':
               counter = 8;
               displayNames(counter);
               break;
+            case '1':
+              customUrl = currentHrefArray[0]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '2':
+              customUrl = currentHrefArray[1]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '3':
+              customUrl = currentHrefArray[2]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '4':
+              customUrl = currentHrefArray[3]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '5':
+              customUrl = currentHrefArray[4]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '6':
+              customUrl = currentHrefArray[5]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '7':
+              customUrl = currentHrefArray[6]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '8':
+              customUrl = currentHrefArray[7]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
             default:
               console.clear();
-              console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + '!');
+              if (answer !== '+') {
+                console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + '!');
+                for (let i = 3; i > 0; i--) {
+                  console.log(chalk.bold.red(i));
+                  if (i === 1) {
+                    await new Promise((resolve) => setTimeout(resolve, 300));
+                    console.clear();
+                    counter -= (linksMain.length - 1) - links.length;
+                    displayNames(counter);
+                    break;
+                  } else {
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                  }
+                }
+              } else {
+                console.clear();
+                console.log('Only enter ' + chalk.bold.red("1") + " through " + chalk.bold.red("8" + '!'));
+                for (let i = 3; i > 0; i--) {
+                  console.log(chalk.bold.red(i));
+                  if (i === 1) {
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    console.clear();
+                    counter = 0;
+                    displayNames(counter);
+                    break;
+                  } else {
+                    await new Promise((resolve) => setTimeout(resolve, 400));
+                  }
+                }
+              }
+              break
+          }
+        })
+      } else {
+        // pick a link
+        rl.question(chalk.bold.blue('\nSelect ') + chalk.bold(': '), async (answer) => {
+          switch (answer) {
+            case '1':
+              customUrl = currentHrefArray[0]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '2':
+              customUrl = currentHrefArray[1]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '3':
+              customUrl = currentHrefArray[2]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '4':
+              customUrl = currentHrefArray[3]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '5':
+              customUrl = currentHrefArray[4]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '6':
+              customUrl = currentHrefArray[5]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '7':
+              customUrl = currentHrefArray[6]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '8':
+              customUrl = currentHrefArray[7]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+              customUrl = currentHrefArray[7]
+              await foundcustomUrl(customUrl);
+              break;
+            default:
+              console.clear();
+              console.log('Only enter ' + chalk.bold.red("1") + " through " + chalk.bold.red("8" + '!'));
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
@@ -783,25 +924,22 @@ async function suggestLinks() {
                   displayNames(counter);
                   break;
                 } else {
-                  await new Promise((resolve) => setTimeout(resolve, 300));
+                  await new Promise((resolve) => setTimeout(resolve, 400));
                 }
               }
-
+              break;
           }
-
         })
-      } else {
-        // no more pages
       }
-
 
     }
     // last page of links
-    else if (counter + 7 >= linksMain.length - 1) {
-
+    else if (counter + 8 >= (linksMain.length - 1)) {
       links = [...linksMain];
       const splicedLinks = links.splice(counter);
       console.clear();
+      console.log('\n' + counter + '\n')
+      //console.log('\n' + (linksMain.length - 1) + '\n')
       console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('->\n'))
       // Display 8 link names
       let colorCounter = 0;
@@ -810,18 +948,24 @@ async function suggestLinks() {
         if (link !== "" && colorCounter !== 8 && counter !== linksMain.length) {
           colorCounter++
           counter++
-          const splitLink = link.split(':')
+          const splitLink = link.split('_')
           const name = splitLink[0];
-          const href = 'https' + `${splitLink[2]}`;
+          const href = `${splitLink[1]}`;
           // display the link name 
+          currentHrefArray.push(href)
           console.log(chalk.hex(colors[colorCounter - 1]).bold(`${name}`))
         }
       }
       // log question 
       console.log(chalk.bold.red('\n<- ') + chalkYellow('Enter ') + chalk.bold("'") + chalk.bold.red('-') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.red('Previous ') + chalkYellow('Page '))
 
-      // ask for input
-      rl.question('', async (answer) => {
+      // pick a link
+
+      rl.question(chalk.bold.blue('\nSelect ') + chalk.bold(': '), async (answer) => {
+        let validNumber;
+        if (answer > 0 && answer <= currentHrefArray.length) {
+          validNumber = Number(answer);
+        }
         switch (answer) {
           case '-':
             //counter -= ((linksMain.length - 1) - links.length) - 8;
@@ -836,23 +980,62 @@ async function suggestLinks() {
               displayNames(counter);
             }
             break;
+          case '1':
+            customUrl = currentHrefArray[0]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case `${validNumber}`:
+            if (counter == 1) {
+              customUrl = currentHrefArray[0]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+            } else {
+              console.log(currentHrefArray[validNumber])
+              process.exit();
+
+              // SOMETHING IS WRONG WITH VALID NUMBER AND THE LINKS, GET LINKS THAT ARE UNIQUE TO TEST IT 
+
+              customUrl = currentHrefArray[validNumber]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+            }
+            break;
           default:
             console.clear();
-            console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + '!');
-            for (let i = 3; i > 0; i--) {
-              console.log(chalk.bold.red(i));
-              if (i === 1) {
-                await new Promise((resolve) => setTimeout(resolve, 300));
-                console.clear();
-                counter -= (linksMain.length - 1) - links.length;
-                displayNames(counter);
-                break;
-              } else {
-                await new Promise((resolve) => setTimeout(resolve, 500));
+            if (answer !== '-' && answer !== '+') {
+              console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + '!');
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 300));
+                  console.clear();
+                  counter -= (linksMain.length - 1) - links.length;
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                }
+              }
+              break;
+            } else {
+              console.clear();
+              console.log('Only enter ' + chalk.bold.red("1") + " through " + chalk.bold.red("8" + '!'));
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  console.clear();
+                  counter = 0;
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 400));
+                }
               }
             }
+            break
         }
-
       })
     }
     // in between pages of links
@@ -860,6 +1043,7 @@ async function suggestLinks() {
       links = [...linksMain];
       const splicedLinks = links.splice(counter);
       console.clear();
+      console.log('\n' + counter + '\n')
       console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('->\n'))
       let colorCounter = 0;
       // Display 8 link names
@@ -867,10 +1051,11 @@ async function suggestLinks() {
         if (link !== "" && colorCounter !== 8 && counter !== linksMain.length) {
           colorCounter++
           counter++
-          const splitLink = link.split(':')
+          const splitLink = link.split('_')
           const name = splitLink[0];
-          const href = 'https' + `${splitLink[2]}`;
+          const href = `${splitLink[1]}`;
           // display the link name 
+          currentHrefArray.push(href)
           console.log(chalk.hex(colors[colorCounter - 1]).bold(`${name}`))
         }
       }
@@ -879,8 +1064,8 @@ async function suggestLinks() {
       console.log(chalkYellow('\nEnter ') + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.red('Next ') + chalkYellow('Page ') + chalk.bold.red('->\n'))
       console.log(chalk.bold.blue('<- ') + chalkYellow('Enter ') + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.blue('Previous ') + chalkYellow('Page '))
 
-      // ask for input
-      rl.question('', async (answer) => {
+      // pick a link
+      rl.question(chalk.bold.blue('\nSelect ') + chalk.bold(': '), async (answer) => {
         switch (answer) {
           case '+':
             displayNames(counter);
@@ -898,17 +1083,34 @@ async function suggestLinks() {
             break;
           default:
             console.clear();
-            console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + '!');
-            for (let i = 3; i > 0; i--) {
-              console.log(chalk.bold.red(i));
-              if (i === 1) {
-                await new Promise((resolve) => setTimeout(resolve, 300));
-                console.clear();
-                counter -= 8;
-                displayNames(counter);
-                break;
-              } else {
-                await new Promise((resolve) => setTimeout(resolve, 500));
+            if (answer !== '-') {
+              console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + '!');
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 300));
+                  console.clear();
+                  counter -= (linksMain.length - 1) - links.length;
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                }
+              }
+            } else {
+              console.clear();
+              console.log('Only enter ' + chalk.bold.red("1") + " through " + chalk.bold.red("8" + '!'));
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  console.clear();
+                  counter = 0;
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 400));
+                }
               }
             }
         }
