@@ -1,18 +1,1 @@
-[1] Sword Art 1_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[2] Sword Art 2_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[3] Sword Art 3_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[4] Sword Art 4_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[5] Sword Art 5_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[6] Sword Art 6_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[7] Sword Art 7_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[8] Sword Art 8_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[1] Sword Art 9_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[2] Sword Art 10_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[3] Sword Art 11_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[4] Sword Art 12_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[5] Sword Art 13_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[6] Sword Art 14_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[7] Sword Art 15_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[8] Sword Art 13_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[1] Sword Art 14_https://jpdb.io/novel/5462/sword-art-online/vocabulary-list
-[2] Guin saga_https://jpdb.io/novel/5760/guin-saga/vocabulary-list
+[1] The Rising of the Shield Hero_https://jpdb.io/novel/3775/the-rising-of-the-shield-hero/vocabulary-list

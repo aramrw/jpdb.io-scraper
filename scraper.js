@@ -516,6 +516,7 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) 
 
   if (linksFile[0] == "") {
     await fs.appendFile('./suggest/links.txt', `[1] ${urlName}_${newCustomUrl}\n`);
+    linkExists = true;
   } else {
     for (const link of linksFile) {
       if (link !== "") {
@@ -611,7 +612,7 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) 
 
 async function askSorting() {
   console.clear();
-  rl.question(chalkYellow("Would you like to") + chalk.bold.green(' Sort ') + chalkYellow("scraped words by ") + chalk.bold.blue('Frequency') + chalkYellow(' or ') + chalk.bold.magenta('Kanji') + chalkYellow('?\n') + chalk.bold.greenBright(chalk.bold.blue('\n[1] Frequency')) + chalk.bold.magenta(('\n[2] Kanji')) + chalk.bold.red(('\n[3] No Thanks\n')), async (answer) => {
+  rl.question(chalkYellow("Would you like to") + chalk.bold.green(' Sort ') + chalkYellow("scraped words by ") + chalk.bold.blue('Frequency') + chalkYellow(' or ') + chalk.bold.magenta('Kanji') + chalkYellow('?\n') + chalk.bold.greenBright(chalk.bold.blue('\n[1] Frequency')) + chalk.bold.magenta(('\n[2] Kanji')) + chalk.bold.cyan(('\n[3] Both!')) + chalk.bold.red(('\n[4] No Thanks\n')), async (answer) => {
     switch (answer) {
       case '1':
         await sortWords();
@@ -620,6 +621,9 @@ async function askSorting() {
         await sortByKanji();
         break;
       case '3':
+        await sortByKanji()
+        await sortWords();
+      case '4':
         console.clear();
         for (let i = 3; i > 0; i--) {
           console.log(chalk.bold.red(i));
@@ -634,7 +638,7 @@ async function askSorting() {
         }
       default:
         console.clear()
-        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
+        console.log('Only enter ' + chalk.bold.greenBright("1") + chalk.bold.red("2 ") + chalk.bold.red("3") + ' or ') + chalk.bold.red("4" + '!');
         for (let i = 3; i > 0; i--) {
           console.log(chalk.bold.red(i));
           if (i === 1) {
@@ -747,8 +751,16 @@ async function sortWords() {
 
       console.clear();
       console.log(cc.boldGreen("Successfully ") + cc.yellow('sorted ') + cc.boldGreen(`${counter}`) + ' of ' + cc.boldRed(`${scrapedWords.length} `) + cc.yellow('words\n'));
-      console.log(cc.boldRed(`${scrapedWords.length} `) + cc.yellow("words have been written to ") + cc.boldRed("'frequency.txt'") + ".");
-      process.exit();
+      console.log(cc.boldRed(`${scrapedWords.length} `) + cc.yellow("words have been written to ") + cc.boldRed("'frequency.txt'") + ".\n");
+      for (let i = 3; i > 0; i--) {
+        console.log(chalk.bold.red(i));
+        if (i === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          startProgram();
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
     }
   } catch (error) {
     console.error("An error occurred:", error);
@@ -1150,8 +1162,6 @@ async function suggestLinks(customUrl, finalEntryNumber) {
 }
 
 async function sortByKanji() {
-
-
   console.clear();
   let knownKanji;
   let words;
@@ -1209,9 +1219,16 @@ async function sortByKanji() {
     }
 
     const kanjiFile = (await fs.readFile('./output/kanji.txt', 'utf-8')).split('\n');
-    console.log(chalk.bold.red(`\n${kanjiFile.length - 1} `) + ("words have been written to ") + chalk.bold.red("'kanji.txt'") + ".");
-    process.exit();
-
+    console.log(chalk.bold.red(`\n\n${foundWords.length} `) + ("words have been written to ") + chalk.bold.red("'kanji.txt'") + ".\n");
+    for (let i = 3; i > 0; i--) {
+      console.log(chalk.bold.red(i));
+      if (i === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        startProgram();
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
 
   }
 
