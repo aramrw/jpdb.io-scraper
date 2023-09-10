@@ -14,13 +14,18 @@ const rl = readline.createInterface({
 const frequentlyUsedLinks = []
 const chalkYellow = chalk.hex('#Ffce00'); // Using the hex code for gold color
 
+// global variables
 let finalEntryNumber = 0;
 let linksFileCounter = 0;
+let pageCounter = 0;
+
 startProgram();
 
 async function startProgram() {
   console.clear()
   rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('⇩\n') + chalk.bold.yellow('\n[1] Word Scraper\n') + chalk.bold.blue('[2] Frequency Sorter\n') + chalk.bold.magenta('[3] Kanji Sorter\n') + chalk.bold.cyan('[4] Suggested Links\n') + chalk.bold.red('[5] Clear Output Files\n'), async (answer) => {
+    pages = {}
+    pageCounter = 0;
     switch (answer) {
       case '1':
         console.clear();
@@ -61,6 +66,8 @@ async function startProgram() {
 }
 
 async function enterCustomLink() {
+  pages = {}
+  pageCounter = 0;
   finalEntryNumber = 0;
   console.log(chalk.bold(chalk.bold.red("Anime ") + "& " + chalk.bold.red("Novel ") + "links:"));
   console.log(chalk.blue("https://jpdb.io/prebuilt_decks?sort_by=word_count&order=reverse\n"));
@@ -109,6 +116,7 @@ async function enterCustomLink() {
 }
 
 async function foundcustomUrl(customUrl, finalEntryNumber) {
+  pages = {}
   console.clear();
   console.log(chalk.bold.red("Loading") + chalk.bold("...\n"));
 
@@ -133,7 +141,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
       if (i === 1) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         console.clear();
-        browser.close();
+        await browser.close();
         enterCustomLink();
         break;
       } else {
@@ -168,7 +176,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
         if (i === 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           console.clear();
-          browser.close();
+          await browser.close();
           enterCustomLink();
           break;
         } else {
@@ -342,31 +350,25 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               }
             }
           } else {
+
             // starting scraping
             const totalPages = Math.min(Number(pageAmount), 100);
             const parallelTasks = []; // Array to store the parallel scraping tasks
             let trackPages = 0;
+
             console.clear();
-            console.log(chalk.bold.red("Scraping") + '...');
+            console.log(chalk.bold.blue("Scraping") + '... ' + chalk.bold.red('Please Wait') + '...');
 
-            // if i want to divide by 50 for some reason
-
-            // if (newVocabOffset % 50 !== 0) {
-            //   newVocabOffset = Math.round(newVocabOffset / 50) * 50;
-            // }
 
             newVocabOffset = newVocabOffset - 50;
-            for (let i = 0; i <= totalPages; i++) {
-              if (i > totalPages) {
-                break;
-              }
+            for (let i = 0; i < totalPages; i++) {
               newVocabOffset = newVocabOffset + 50;
-              await scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName);
-              trackPages++;
+              const promise = scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName);
               finalEntryNumber = newVocabOffset;
-              console.clear();
-              console.log("Page " + chalk.bold.green(`${trackPages - 1}`) + " out of " + chalk.bold.red(`${pageAmount}`))
+              parallelTasks.push(promise);
             }
+
+            await Promise.all(parallelTasks);
 
             // end scraping and log results
             console.log(chalk.bold.greenBright(`Successfully `) + "scraped all " + chalk.bold.greenBright(`${totalPages}`) + " pages.");
@@ -447,6 +449,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
 
 
   function scrapeSameLinkAgain(urlName, finalEntryNumber, frequencyCheckComplete, newVocabOffset, browser, newCustomUrl, page, paragraphNumber, coloredNumber) {
+    pageCounter = 0;
 
     rl.question(chalkYellow('\nWould you like to scrape again?') + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
       let scrapeAgain;
@@ -504,7 +507,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
           }
         });
       } else if (scrapeAgain == false) {
-        browser.close();
+        await browser.close();
         askSorting();
       }
     });
@@ -512,6 +515,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
 }
 
 async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) {
+
 
   // suggest links file
   let linksFile = (await fs.readFile('./suggest/links.txt', 'utf8')).split('\n');
@@ -618,6 +622,7 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) 
     writeKanji(rubyWords);
 
   }
+  //stdout.write(chalk.bold.greenBright('Successfully') + ' scraped ' + chalk.bold.greenBright(`${pageCounter}`) + ' of ' + chalk.bold.blue(`${totalPages}`) + '!\n');
   await page2.close();
 }
 
