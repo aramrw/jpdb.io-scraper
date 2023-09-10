@@ -4,11 +4,6 @@ const fs = require("fs").promises;
 const chalk = require("chalk");
 const { stdout } = require("process");
 
-module.exports = {
-  startProgram
-};
-
-
 process.setMaxListeners(100); // You can adjust the number based on your needs
 
 const rl = readline.createInterface({
@@ -19,12 +14,13 @@ const rl = readline.createInterface({
 const frequentlyUsedLinks = []
 const chalkYellow = chalk.hex('#Ffce00'); // Using the hex code for gold color
 
+let finalEntryNumber = 0;
+let linksFileCounter = 0;
 startProgram();
-
 
 async function startProgram() {
   console.clear()
-  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('->\n') + chalk.bold.yellow('\n[1] Word Scraper\n') + chalk.bold.blue('[2] Frequency Sorter\n') + chalk.bold.red('[3] Clear Output Files\n'), async (answer) => {
+  rl.question(chalkYellow('Choose which ') + chalk.bold.blue('program ') + chalkYellow('to start ') + chalk.bold.blue('⇩\n') + chalk.bold.yellow('\n[1] Word Scraper\n') + chalk.bold.blue('[2] Frequency Sorter\n') + chalk.bold.magenta('[3] Kanji Sorter\n') + chalk.bold.cyan('[4] Suggested Links\n') + chalk.bold.red('[5] Clear Output Files\n'), async (answer) => {
     switch (answer) {
       case '1':
         console.clear();
@@ -32,15 +28,23 @@ async function startProgram() {
         break;
       case '2':
         console.clear();
-        sortWords();
+        await sortWords();
         break;
       case '3':
+        console.clear();
+        await sortByKanji();
+        break;
+      case '4':
+        console.clear();
+        await suggestLinks();
+        break;
+      case '5':
         console.clear();
         await clearFiles();
         break;
       default:
         console.clear()
-        console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold.yellow("1 ") + "or " + chalk.bold.blue("2 ") + "or " + chalk.bold.red("3" + '!'));
+        console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold.yellow("1 ") + "/ " + chalk.bold.blue("2 ") + "/ " + chalk.bold.red("3 ") + "/ " + chalk.bold.cyan("4") + " / " + chalk.bold.magenta("5") + '!\n');
         for (let i = 3; i > 0; i--) {
           console.log(chalk.bold.red(i));
           if (i === 1) {
@@ -57,17 +61,21 @@ async function startProgram() {
 }
 
 async function enterCustomLink() {
-  let finalEntryNumber = 0;
+  finalEntryNumber = 0;
   console.log(chalk.bold(chalk.bold.red("Anime ") + "& " + chalk.bold.red("Novel ") + "links:"));
   console.log(chalk.blue("https://jpdb.io/prebuilt_decks?sort_by=word_count&order=reverse\n"));
-  console.log(chalkYellow("Enter an Anime / Novel Url ") + chalk.bold.red("->"));
-  rl.question("", async (customUrl) => {
-    if (customUrl.length < 7 && customUrl.includes("/vocabulary-list") && customUrl.includes("jpdb.io/")) {
+  console.log(chalkYellow("Enter ") + chalk.bold.cyan('[1]') + chalkYellow(' for ') + chalk.bold.cyan("Suggested Links") + chalkYellow(' or ') + chalk.bold.red("⇩\n"));
+  rl.question(chalkYellow("Enter an ") + chalk.bold.red('Anime') + chalkYellow(' / ') + chalk.bold.red('Novel ') + chalkYellow('Url ') + chalk.bold.red("➦  "), async (customUrl) => {
+    if (customUrl.length < 7 && customUrl.includes("/vocabulary-list") && customUrl.includes("https://jpdb.io/" && customUrl !== '1')) {
       console.clear();
       console.log(chalk.bold.red("Invalid! ") + ("Url must be" + chalk.bold.red("longer") + "than" + chalk.bold.red("7") + "characters.\n"));
       console.log(chalk.bold("Example Link: "));
       console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
       await enterCustomLink();
+    }
+    else if (customUrl == '1') {
+      console.clear();
+      await suggestLinks();
     }
     else if (customUrl.length < 5) {
       console.clear();
@@ -76,7 +84,7 @@ async function enterCustomLink() {
       console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
       await enterCustomLink();
     }
-    else if ((!customUrl.includes("/vocabulary-list")) || (!customUrl.includes("//jpdb.io/"))) {
+    else if ((!customUrl.includes("/vocabulary-list")) || (!customUrl.includes("https://jpdb.io/"))) {
       console.clear();
       console.log(chalk.bold.red("Invalid! ") + "Only enter anime/novel's " + chalk.bold.yellowBright("vocabulary list ") + "url.\n");
       console.log(chalk.bold.yellowBright("Example Link: "));
@@ -84,13 +92,13 @@ async function enterCustomLink() {
       for (let i = 3; i > 0; i--) {
         console.log(chalk.bold.red(i));
         if (i === 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1100));
+          await new Promise((resolve) => setTimeout(resolve, 500));
           console.clear();
           console.log(chalk.bold.yellowBright("Example Link: "));
           console.log(chalk.blue("https://jpdb.io/novel/5462/sword-art-online/vocabulary-list\n"));
           await enterCustomLink();
         } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 700));
         }
       }
     }
@@ -102,7 +110,7 @@ async function enterCustomLink() {
 
 async function foundcustomUrl(customUrl, finalEntryNumber) {
   console.clear();
-  console.log(chalk.bold.red("Loading...\n"));
+  console.log(chalk.bold.red("Loading") + chalk.bold("...\n"));
 
   const newCustomUrl = customUrl.toString();
   const browser = await puppeteer.launch({
@@ -112,16 +120,14 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
 
   const page = await browser.newPage();
 
-  // catch invalid url
-  let validUrl = false;
+  // catch invalid url;
+  let validUrl = true;
 
   try {
     await page.goto(`${newCustomUrl}`, { waitUntil: "load", timeout: 0 });
-    validUrl = true;
   } catch (error) {
-    await browser.close();
-    console.clear();
-    console.log(chalk.bold.red('Error! ') + 'Invalid url! Please try again.')
+    validUrl = false;
+    console.log(chalk.bold.red('Error! ') + 'Invalid url. Please try again.')
     for (let i = 3; i > 0; i--) {
       console.log(chalk.bold.red(i));
       if (i === 1) {
@@ -129,33 +135,51 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
         console.clear();
         browser.close();
         enterCustomLink();
+        break;
       } else {
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
     }
   }
 
-  if (validUrl == true) {
-    const paragraphElements = await page.evaluate(() => {
-      const paragraphElements = document.querySelectorAll("p");
-      return Array.from(paragraphElements, (element) => element.textContent.trim());
-    });
-    let foundParagraphElements = [];
-    let coloredNumber;
-    const urlSegments = customUrl.split('/')
-    let urlName;
-    if (!urlSegments[5] == "") {
-      urlName = urlSegments[5].replace(/-/g, ' ');
-    } else {
-      const h4Elements = await page.evaluate(() => {
-        const h4Elements = document.querySelectorAll("h4");
-        return Array.from(h4Elements, (element) => element.textContent.trim());
-      });
-      for (const h4Elem of h4Elements) {
-        let h4Segments = h4Elem.split(':');
-        urlName = h4Segments[1].replace(/\s/g, '');
+  const paragraphElements = await page.evaluate(() => {
+    const paragraphElements = document.querySelectorAll("p");
+    return Array.from(paragraphElements, (element) => element.textContent.trim());
+  });
+  let foundParagraphElements = [];
+  let coloredNumber;
+  const urlSegments = customUrl.split('/')
+  let urlName;
+
+  const h4Elements = await page.evaluate(() => {
+    const h4Elements = document.querySelectorAll("h4");
+    return Array.from(h4Elements, (element) => element.textContent.trim());
+  });
+
+  for (const h4Elem of h4Elements) {
+    try {
+      const colonIndex = h4Elem.indexOf(':'); // Find the index of the first ":"
+      urlName = colonIndex !== -1 ? h4Elem.slice(colonIndex + 1).trim() : h4Elem.trim();
+    } catch {
+      validUrl = false;
+      console.log(chalk.bold.red('Error! ') + 'Invalid url. Please try again.')
+      for (let i = 3; i > 0; i--) {
+        console.log(chalk.bold.red(i));
+        if (i === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          console.clear();
+          browser.close();
+          enterCustomLink();
+          break;
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
       }
     }
+
+  }
+
+  if (validUrl == true) {
     let paragraphNumber;
     for (const paragraphElement of paragraphElements) {
       if (paragraphElement.includes("Showing")) {
@@ -215,7 +239,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               break;
             default:
               console.clear()
-              console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
+              console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
@@ -230,7 +254,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
         })
         // if no finalEntryNumber is found
       } else {
-        console.log(chalkYellow('Enter a search offset') + chalk.bold.red(' ->'))
+        console.log(chalkYellow('Enter a search offset') + chalk.bold.red(' ⇩'))
         rl.question("", async (vocabOffset) => {
           let timerCounter = 3;
           // Attempt to parse the input as an integer
@@ -240,7 +264,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               await frequencyCheck(frequencyCheckComplete, page, newVocabOffset, paragraphNumber, coloredNumber, newCustomUrl, browser, finalEntryNumber, urlName);
             } else if (newVocabOffset > paragraphNumber) {
               console.clear();
-              console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('bigger ') + 'than ' + chalk.bold.red(`${paragraphNumber}`) + '!');
+              console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('bigger ') + 'than ' + chalk.bold.red(`${paragraphNumber}`) + '!\n');
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
@@ -252,7 +276,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
               }
             } else if (newVocabOffset < 0) {
               console.clear();
-              console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('smaller ') + 'than ' + chalk.bold.red(`0`) + '!');
+              console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.bold.red('smaller ') + 'than ' + chalk.bold.red(`0`) + '!\n');
               for (let i = 3; i > 0; i--) {
                 console.log(chalk.bold.red(i));
                 if (i === 1) {
@@ -265,7 +289,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
             }
           } else {
             console.clear();
-            console.log(chalk.bold.red('Error! ') + 'Not a valid number. Try again' + '!');
+            console.log(chalk.bold.red('Error! ') + 'Not a valid number. Try again' + '!\n');
             for (let i = 3; i > 0; i--) {
               console.log(chalk.bold.red(i));
               if (i === 1) {
@@ -299,7 +323,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
           }
         }
       } else {
-        console.log(chalkYellow("Please enter the ") + chalk.bold("amount ") + chalkYellow('of ') + chalk.bold.red('pages ') + chalkYellow('to scrape') + chalk.bold.red(' ->'));
+        console.log(chalkYellow("Please enter the ") + chalk.bold("amount ") + chalkYellow('of ') + chalk.bold.red('pages ') + chalkYellow('to scrape') + chalk.bold.red(' ⇩'));
         rl.question("", async (answer) => {
 
           // error handling for invalid input
@@ -307,7 +331,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
           let pageAmount = answer;
           if (Number(pageAmount) > Number(maxPages) || Number(pageAmount) < 0 || Number(pageAmount) < 0 || isNaN(pageAmount)) {
             console.clear();
-            console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.red("less ") + 'than ' + chalk.bold.red('0 ') + "or " + chalk.red("greater ") + 'than ' + chalk.bold.red(`${maxPages}`) + '!');
+            console.log(chalk.bold.red('Error! ') + 'Value ' + chalk.bold.red('cannot ') + 'be ' + chalk.red("less ") + 'than ' + chalk.bold.red('0 ') + "or " + chalk.red("greater ") + 'than ' + chalk.bold.red(`${maxPages}`) + '!\n');
             for (let i = 3; i > 0; i--) {
               console.log(chalk.bold.red(i));
               if (i === 1) {
@@ -337,7 +361,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
                 break;
               }
               newVocabOffset = newVocabOffset + 50;
-              await scrapeCustomLink(newVocabOffset, newCustomUrl, browser);
+              await scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName);
               trackPages++;
               finalEntryNumber = newVocabOffset;
               console.clear();
@@ -441,7 +465,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
           break;
         default:
           console.clear()
-          console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
+          console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
           for (let i = 3; i > 0; i--) {
             console.log(chalk.bold.red(i));
             if (i === 1) {
@@ -456,7 +480,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
       }
       if (scrapeAgain == true) {
         console.clear();
-        rl.question('Scrape ' + chalk.bold.red(`${urlName}`) + ' again?' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (sameLink) => {
+        rl.question('Scrape ' + chalk.bold.blue(`${urlName}`) + ' again?\n' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (sameLink) => {
           if (Number(sameLink) == 1) {
             frequencyCheckComplete = false;
             await askOffset(finalEntryNumber, frequencyCheckComplete, paragraphNumber, coloredNumber, newVocabOffset, urlName, page, newCustomUrl, browser);
@@ -466,7 +490,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
             enterCustomLink();
           } else {
             console.clear();
-            console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
+            console.log(chalk.bold.red('Error! ') + 'Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
             for (let i = 3; i > 0; i--) {
               console.log(chalk.bold.red(`\n${i}`));
               if (i === 1) {
@@ -487,11 +511,43 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
   }
 }
 
+async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) {
 
-async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
-  // const browser = await puppeteer.launch({
-  //   headless: "new",
-  // });
+  // suggest links file
+  let linksFile = (await fs.readFile('./suggest/links.txt', 'utf8')).split('\n');
+  let linkExists = false;
+
+  if (linksFile[0] == "") {
+    linksFileCounter = 0;
+    await fs.appendFile('./suggest/links.txt', `[1] ${urlName}_${newCustomUrl}\n`);
+    linkExists = true;
+  } else {
+    for (const link of linksFile) {
+      if (link !== "") {
+        const splitLinks = link.split(/_|]/);
+        if (splitLinks[1].trim() == urlName.trim()) {
+          linkExists = true;
+          break;
+        }
+      }
+    }
+  }
+
+  //console.log(linksFileCounter)
+  //process.exit();
+
+  if (linkExists == false) {
+    if ((linksFile.length - 1) % 8 === 0) {
+      (linksFileCounter = 1, await fs.appendFile('./suggest/links.txt', `[${linksFileCounter}] ${urlName}_${newCustomUrl}\n`))
+    } else {
+      // Calculate the counter value based on the number of links
+      const numberOfLinks = linksFile.length - 1;
+      linksFileCounter = (numberOfLinks % 8) + 1; // Add 1 to start from 1
+      await fs.appendFile('./suggest/links.txt', `[${linksFileCounter}] ${urlName}_${newCustomUrl}\n`);
+    }
+  }
+
+  // scraping
 
   const page2 = await browser.newPage();
 
@@ -503,7 +559,6 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
   if (index !== -1) {
     modifiedCustomUrl = customUrlArray.slice(0, index).join("/");
     let vocabListLink = `${modifiedCustomUrl}/vocabulary-list?sort_by=by-frequency-global&offset=${newVocabOffset}`;
-
     // Increase the timeout to 180 seconds (3 minutes)
     try {
       await page2.goto(`${vocabListLink}`, { waitUntil: "load", timeout: 0 });
@@ -512,9 +567,6 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
       console.log(`Error! Could not navigate to page!\n ${error}`)
       process.exit();
     }
-
-
-
   } else {
     console.log(`Error ${newCustomUrl}`);
   }
@@ -538,9 +590,9 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
 
   if (!hasNextPage) {
     console.clear();
-    console.log("Final page reached!\n");
+    console.log(chalk.bold.red("Final page reached!\n"));
     await browser.close();
-    process.exit();
+    await askSorting();
   }
 
   // Get list of ruby words
@@ -569,49 +621,36 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser) {
   await page2.close();
 }
 
-async function writeKanji(rubyWords) {
-  if (rubyWords.length === 0) {
-    console.log(`No kanji words to write.`);
-  } else {
-    try {
-      // Prepare the data to be appended with a newline
-      const newData = rubyWords.join("\n") + "\n";
-
-      // Append the data to the file asynchronously
-      const outputFilePath = "./output/words.txt";
-      await fs.appendFile(outputFilePath, newData);
-
-      //console.log(``);
-    } catch (error) {
-      console.error(`Error writing to file: ${error}`);
-      process.exit();
-    }
-  }
-}
-
 async function askSorting() {
   console.clear();
-  rl.question(chalkYellow("Would you like to sort scraped words by frequency?") + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
+  rl.question(chalkYellow("Would you like to") + chalk.bold.green(' Sort ') + chalkYellow("scraped words by ") + chalk.bold.blue('Frequency') + chalkYellow(' or ') + chalk.bold.magenta('Kanji') + chalkYellow('?\n') + chalk.bold.greenBright(chalk.bold.blue('\n[1] Frequency')) + chalk.bold.magenta(('\n[2] Kanji')) + chalk.bold.cyan(('\n[3] Both!')) + chalk.bold.red(('\n[4] No Thanks\n')), async (answer) => {
     switch (answer) {
       case '1':
         await sortWords();
-        await startProgram();
         break;
       case '2':
-        console.clear();
-        console.log(chalk.bold.blue('Goodbye!'));
-        process.exit();
-      case 'yes':
-        await sortWords();
-        await startProgram();
+        await sortByKanji();
         break;
-      case 'no':
+      case '3':
+        await sortByKanji()
+        await sortWords();
+      case '4':
         console.clear();
-        console.log(chalk.bold.blue('Goodbye!'));
-        process.exit();
+        for (let i = 3; i > 0; i--) {
+          console.log(chalk.bold.red(i));
+          if (i === 1) {
+            frequencyCheckComplete = false;
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            console.clear();
+            stdout.write(chalk.bold.blue('Goodbye!\n'));
+            process.exit();
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        }
       default:
         console.clear()
-        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
+        console.log('Only enter ' + chalk.bold.greenBright("1") + chalk.bold.red("2 ") + chalk.bold.red("3") + ' or ') + chalk.bold.red("4" + '!\n');
         for (let i = 3; i > 0; i--) {
           console.log(chalk.bold.red(i));
           if (i === 1) {
@@ -622,62 +661,6 @@ async function askSorting() {
           }
         }
         break;
-    }
-
-  })
-}
-
-async function clearFiles() {
-  console.clear();
-  trulyClear = false;
-  rl.question(chalk.bold.red('Are you sure ') + 'you would like to clear ' + chalk.red.bold('all ') + 'files?\n' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
-    switch (answer) {
-      case '1':
-        trulyClear = true
-        break;
-      case '2':
-        startProgram();
-        break;
-      default:
-        console.clear()
-        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!'));
-        for (let i = 3; i > 0; i--) {
-          console.log(chalk.bold.red(i));
-          if (i === 1) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            await clearFiles();
-          } else {
-            await new Promise((resolve) => setTimeout(resolve, 800));
-          }
-        }
-        break;
-    }
-    if (trulyClear == true) {
-      console.clear();
-      try {
-        let counter = 0;
-        const outputFiles = ['word.txt', 'sorted.txt']; // Use fs.readdirSync for a synchronous operation
-        for (const file of outputFiles) {
-          counter++;
-          stdout.write(('\rCleared ') + chalk.bold.red(`${counter}`) + ' of ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
-        }
-
-        if (counter === outputFiles.length) {
-          console.log(chalk.bold.greenBright('\nSuccessfully ') + 'cleared all ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
-          for (let i = 3; i > 0; i--) {
-            console.log(chalk.bold.red(i));
-            if (i === 1) {
-              await new Promise((resolve) => setTimeout(resolve, 200));
-              startProgram();
-            } else {
-              await new Promise((resolve) => setTimeout(resolve, 300));
-            }
-          }
-        }
-
-      } catch (error) {
-        console.log(error);
-      }
     }
 
   })
@@ -724,14 +707,14 @@ async function sortWords() {
 
     if (scrapedWords[0] == "") {
       console.clear();
-      console.log(cc.boldRed('Error! ') + ('There are no words in ') + cc.boldRed(`words.txt`) + '!')
+      console.log(cc.boldRed('Error! ') + ('There are no words in ') + cc.boldRed(`words.txt`) + '!\n')
       for (let i = 3; i > 0; i--) {
         console.log(chalk.bold.red(i));
         if (i === 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 800));
           startProgram();
         } else {
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
     } else {
@@ -754,9 +737,9 @@ async function sortWords() {
       for (const scrapedWord of scrapedWords) {
         counter++;
         if (!processedWords.has(scrapedWord)) {
-          //process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldYellow(`[ `) + cc.boldRed(`${counter}`) + cc.boldYellow(` ] `) + cc.boldBlue(`${scrapedWord}`) + cc.yellow(' of ') + cc.boldYellow(`[ `) + cc.boldRed(`${scrapedWord.length}`) + cc.boldYellow(` ] `));
-          //process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldYellow(`[ `) + cc.boldBlue(`${scrapedWord}`) + cc.boldYellow(']'));
-          process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word `) + cc.boldRed(': ') + cc.boldBlue(`${scrapedWord}`));
+          //process.stdout.write(cc.boldRed(`\r${ loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word`) + cc.boldRed(': ') + cc.boldYellow(`[`) + cc.boldRed(`${ counter }`) + cc.boldYellow(` ]`) + cc.boldBlue(`${ scrapedWord }`) + cc.yellow(' of ') + cc.boldYellow(`[`) + cc.boldRed(`${ scrapedWord.length }`) + cc.boldYellow(` ]`));
+          //process.stdout.write(cc.boldRed(`\r${ loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word`) + cc.boldRed(': ') + cc.boldYellow(`[`) + cc.boldBlue(`${ scrapedWord }`) + cc.boldYellow(']'));
+          process.stdout.write(cc.boldRed(`\r${loadingAnimation[animationIndex]}`) + cc.yellow(` Processing word`) + cc.boldRed(': ') + cc.boldBlue(`${scrapedWord}`));
           animationIndex = (animationIndex + 1) % loadingAnimation.length;
 
           const matchingEntry = yomichanDictionaries.map((dictionary) => dictionary.find((entry) => entry[0] === scrapedWord)).find(Boolean);
@@ -776,15 +759,616 @@ async function sortWords() {
       const formattedConsoleMessages = sortedMessages.map(({ word, value }) => `'${word}': "${value}"`);
 
       //console.log("\nWriting formatted console messages to 'formatted_console_output.txt'...");
-      await fs.writeFile("./output/sorted.txt", formattedConsoleMessages.join("\n"), { encoding: "utf-8" });
+      await fs.writeFile("./output/frequency.txt", formattedConsoleMessages.join("\n"), { encoding: "utf-8" });
 
       console.clear();
       console.log(cc.boldGreen("Successfully ") + cc.yellow('sorted ') + cc.boldGreen(`${counter}`) + ' of ' + cc.boldRed(`${scrapedWords.length} `) + cc.yellow('words\n'));
-      console.log(cc.boldRed(`${scrapedWords.length} `) + cc.yellow("words have been written to ") + cc.boldRed("'sorted.txt'") + ".");
-      process.exit();
+      console.log(cc.boldRed(`${scrapedWords.length} `) + cc.yellow("words have been written to ") + cc.boldRed("'frequency.txt'") + ".\n");
+      for (let i = 3; i > 0; i--) {
+        console.log(chalk.bold.red(i));
+        if (i === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          startProgram();
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
     }
   } catch (error) {
     console.error("An error occurred:", error);
   }
 
 };
+
+async function suggestLinks(customUrl, finalEntryNumber) {
+
+  finalEntryNumber = null
+  const linksMain = (await fs.readFile('./suggest/links.txt', "utf-8")).split("\n");
+  let links = [...linksMain];
+  let counter = 0;
+  let currentHrefArray = [];
+
+  // display names from links.txt
+  async function displayNames(counter) {
+
+    // first page of links
+    if (counter == 0) {
+      links = [...linksMain];
+      console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('⇩\n'))
+      // Display 8 link names
+      for (const link of links) {
+        if (link !== "" && counter !== 8 && counter !== linksMain.length - 1) {
+          counter++
+          const splitLink = link.split('_')
+          const name = splitLink[0];
+          const href = `${splitLink[1]}`;
+
+          // display the link name 
+          currentHrefArray.push(href);
+          console.log(chalk.hex(colors[counter - 1]).bold(`${name}`))
+        }
+      }
+      if (counter !== linksMain.length - 1) {
+        // ask for input
+        console.log(chalkYellow('\nEnter ') + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + chalkYellow(' for') + chalk.bold.red(' Next') + chalkYellow(' Page ') + chalk.bold.red('➡'))
+        rl.question(chalk.bold.blue('\nSelect ') + chalk.bold(': '), async (answer) => {
+          switch (answer) {
+            case '+':
+              counter = 8;
+              displayNames(counter);
+              break;
+            case '1':
+              customUrl = currentHrefArray[0]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '2':
+              customUrl = currentHrefArray[1]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '3':
+              customUrl = currentHrefArray[2]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '4':
+              customUrl = currentHrefArray[3]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '5':
+              customUrl = currentHrefArray[4]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '6':
+              customUrl = currentHrefArray[5]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '7':
+              customUrl = currentHrefArray[6]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '8':
+              customUrl = currentHrefArray[7]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            default:
+              console.clear();
+              counter = 0;
+              if (isNaN(answer)) {
+                console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + '!\n');
+                for (let i = 3; i > 0; i--) {
+                  console.log(chalk.bold.red(i));
+                  if (i === 1) {
+                    await new Promise((resolve) => setTimeout(resolve, 300));
+                    console.clear();
+                    displayNames(counter);
+                    break;
+                  } else {
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                  }
+                }
+              } else if (answer < 0 || answer > 8) {
+                console.clear();
+                console.log('Only enter ' + chalk.bold.red("1") + " through " + chalk.bold.red("8" + '!\n'));
+                for (let i = 3; i > 0; i--) {
+                  console.log(chalk.bold.red(i));
+                  if (i === 1) {
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    console.clear();
+                    displayNames(counter);
+                    break;
+                  } else {
+                    await new Promise((resolve) => setTimeout(resolve, 400));
+                  }
+                }
+              }
+              break;
+          }
+        })
+      } else {
+        // pick a link
+        rl.question(chalk.bold.blue('\nSelect ') + chalk.bold(': '), async (answer) => {
+          switch (answer) {
+            case '1':
+              customUrl = currentHrefArray[0]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '2':
+              customUrl = currentHrefArray[1]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '3':
+              customUrl = currentHrefArray[2]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '4':
+              customUrl = currentHrefArray[3]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '5':
+              customUrl = currentHrefArray[4]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '6':
+              customUrl = currentHrefArray[5]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '7':
+              customUrl = currentHrefArray[6]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+            case '8':
+              customUrl = currentHrefArray[7]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+              break;
+              customUrl = currentHrefArray[7]
+              await foundcustomUrl(customUrl);
+              break;
+            default:
+              console.clear();
+              console.log('Only enter ' + chalk.bold.red("1") + " through " + chalk.bold.red("8" + '!\n'));
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  console.clear();
+                  counter = 0;
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 400));
+                }
+              }
+              break;
+          }
+        })
+      }
+
+    }
+    // last page of links
+    else if (counter + 8 >= (linksMain.length - 1)) {
+      currentHrefArray = [];
+      links = [...linksMain];
+      const splicedLinks = links.splice(counter);
+      console.clear();
+      //console.log('\n' + counter + '\n')
+      //console.log('\n' + (linksMain.length - 1) + '\n')
+      console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('⇩\n'))
+      // Display 8 link names
+      let colorCounter = 0;
+      // Display 8 link names
+      for (const link of splicedLinks) {
+        if (link !== "" && colorCounter !== 8 && counter !== linksMain.length) {
+          colorCounter++
+          counter++
+          const splitLink = link.split('_')
+          const name = splitLink[0];
+          const href = `${splitLink[1]}`;
+          // display the link name 
+          currentHrefArray.push(href)
+          console.log(chalk.hex(colors[colorCounter - 1]).bold(`${name}`))
+        }
+      }
+      // log question 
+      console.log(chalk.bold.red('\n⬅ ') + chalkYellow(' Enter ') + chalk.bold("'") + chalk.bold.red('-') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.red('Previous ') + chalkYellow('Page '))
+
+      // pick a link
+
+      rl.question(chalk.bold.blue('\nSelect ') + chalk.bold(': '), async (answer) => {
+        let validNumber;
+        if (answer > 0 && answer <= currentHrefArray.length) {
+          validNumber = Number(answer);
+        }
+        switch (answer) {
+          case '-':
+            //counter -= ((linksMain.length - 1) - links.length) - 8;
+            if (counter - 8 == 0 || counter - 8 < 0) {
+              counter = 0;
+              console.clear();
+              displayNames(counter);
+            } else {
+              counter = links.length
+              counter -= 8;
+              console.clear();
+              displayNames(counter);
+            }
+            break;
+          case '1':
+            customUrl = currentHrefArray[0]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case `${validNumber}`:
+            if (counter == 1) {
+              customUrl = currentHrefArray[0]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+            } else {
+              console.log(currentHrefArray[validNumber])
+              process.exit();
+
+              // SOMETHING IS WRONG WITH VALID NUMBER AND THE LINKS, GET LINKS THAT ARE UNIQUE TO TEST IT 
+
+              customUrl = currentHrefArray[validNumber]
+              finalEntryNumber = 0;
+              await foundcustomUrl(customUrl, finalEntryNumber);
+            }
+            break;
+          default:
+            console.clear();
+            if (answer !== '-' && isNaN(answer)) {
+              console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + '!\n');
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 300));
+                  console.clear();
+                  counter -= (linksMain.length - 1) - links.length;
+                  //console.log(counter);
+                  //process.exit();
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                }
+              }
+            } else if (answer < 0 || answer > 8) {
+              console.clear();
+              console.log('Only enter ' + chalk.bold.red("1") + " through " + chalk.bold.red("8" + '!\n'));
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  console.clear();
+                  counter -= (linksMain.length - 1) - links.length - 1;
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 400));
+                }
+              }
+            }
+            break
+        }
+      })
+    }
+    // in between pages of links
+    else {
+      currentHrefArray = []
+      links = [...linksMain];
+      const splicedLinks = links.splice(counter);
+      console.clear();
+      //console.log('\n' + counter + '\n')
+      console.log(chalkYellow('Please select which ') + chalk.bold.blue('link ') + chalkYellow('you would like to ') + chalk.bold.blue('scrape ') + chalk.bold.red('⇩\n'))
+      let colorCounter = 0;
+      // Display 8 link names
+      for (const link of splicedLinks) {
+        if (link !== "" && colorCounter !== 8 && counter !== linksMain.length) {
+          colorCounter++
+          counter++
+          const splitLink = link.split('_')
+          const name = splitLink[0];
+          const href = `${splitLink[1]}`;
+          // display the link name 
+          currentHrefArray.push(href)
+          console.log(chalk.hex(colors[colorCounter - 1]).bold(`${name}`))
+        }
+      }
+
+      //logging question 
+      console.log(chalkYellow('\nEnter ') + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.red('Next ') + chalkYellow('Page ') + chalk.bold.red('➡\n'))
+      console.log(chalk.bold.blue('⬅ ') + chalkYellow(' Enter ') + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + chalkYellow(' for ') + chalk.bold.blue('Previous ') + chalkYellow('Page '))
+
+      // pick a link
+      rl.question(chalk.bold.blue('\nSelect ') + chalk.bold(': '), async (answer) => {
+        switch (answer) {
+          case '+':
+            displayNames(counter);
+            break;
+          case '-':
+            if (counter - 8 <= 0) {
+              counter = 0;
+              console.clear();
+              displayNames(counter);
+            } else {
+              counter -= 16;
+              console.clear();
+              displayNames(counter);
+            }
+            break;
+          case '1':
+            customUrl = currentHrefArray[0]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case '2':
+            customUrl = currentHrefArray[1]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case '3':
+            customUrl = currentHrefArray[2]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case '4':
+            customUrl = currentHrefArray[3]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case '5':
+            customUrl = currentHrefArray[4]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case '6':
+            customUrl = currentHrefArray[5]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case '7':
+            customUrl = currentHrefArray[6]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          case '8':
+            customUrl = currentHrefArray[7]
+            finalEntryNumber = 0;
+            await foundcustomUrl(customUrl, finalEntryNumber);
+            break;
+          default:
+            console.clear();
+            if (answer !== '-' && answer !== '+' && isNaN(answer)) {
+              console.log(chalk.bold.red('Only ') + 'enter ' + chalk.bold("'") + chalk.bold.blue('-') + chalk.bold("'") + ' or ' + chalk.bold("'") + chalk.bold.red('+') + chalk.bold("'") + '!\n');
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 300));
+                  console.clear();
+                  counter -= (linksMain.length - 1) - links.length - 1;
+                  //console.log(counter);
+                  //process.exit();
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                }
+              }
+            } else if (answer < 0 || answer > 8) {
+              console.clear();
+              console.log('Only enter ' + chalk.bold.red("1") + " through " + chalk.bold.red("8" + '!\n'));
+              for (let i = 3; i > 0; i--) {
+                console.log(chalk.bold.red(i));
+                if (i === 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  console.clear();
+                  counter -= (linksMain.length - 1) - links.length - 1;
+                  displayNames(counter);
+                  break;
+                } else {
+                  await new Promise((resolve) => setTimeout(resolve, 400));
+                }
+              }
+            }
+            break;
+        }
+
+      })
+    }
+  }
+
+  if (links[0] == "") {
+    console.clear();
+    console.log(chalk.bold.red('Error! ') + 'There are no links in ' + chalk.bold.red('links.txt') + '!\n')
+    for (let i = 3; i > 0; i--) {
+      console.log(chalk.bold.red(i));
+      if (i === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        startProgram();
+        break;
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+    }
+  }
+
+  colors = [
+    '7AC757',
+    'A9C841',
+    'D7C633',
+    'FD7835',
+    'FF5833',
+    'FF5447',
+    'FF6C47',
+    'FF8547',
+  ];
+
+  await displayNames(counter)
+
+}
+
+async function sortByKanji() {
+  console.clear();
+  let knownKanji;
+  let words;
+
+  try {
+    words = (await fs.readFile('./output/words.txt', 'utf-8')).split('\n');
+  } catch (error) {
+    console.log(chalk.bold.red('Error!') + ' There are no words in ' + chalk.bold.red('words.txt') + '!\n')
+  }
+  try {
+    let knownKanji = (await fs.readFile('./kanji/knownkanji.txt', 'utf-8')).replace(/[\r\n]/g, '');
+  } catch (error) {
+    console.log(chalk.bold.red('Error!') + ' There are no words in ' + chalk.bold.red('knownkanji.txt') + '!\n')
+  }
+  const allKanji = (await fs.readFile('./kanji/allkanji.txt', 'utf-8')).replace(/[\r\n]/g, '');
+
+  if (words[0] == "") {
+    console.clear();
+    console.log(chalk.bold.red('Error! ') + ('There are no words in ') + chalk.bold.red(`words.txt`) + '!\n')
+    for (let i = 3; i > 0; i--) {
+      console.log(chalk.bold.red(i));
+      if (i === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        startProgram();
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+  } else {
+    //make arrays from files 
+    //const kanjiArray = Array.from(knownKanji);
+    const wordsArray = Array.from(words);
+    const allKanjiArray = Array.from(allKanji);
+    let counter = 0;
+    let kanjiCounter = 0;
+    let newChar = '';
+    charCounter = 0;
+    const foundWords = []
+
+    for (const kanji of allKanjiArray) {
+      kanjiCounter++;
+      for (const word of wordsArray) {
+        let charCounter = 0; // Reset charCounter for each new word
+        for (const char of word) {
+          charCounter++;
+          newChar = word.charAt(charCounter - 1); // Use charCounter - 1 to access characters correctly
+          if (newChar.includes(kanji) && !foundWords.includes(word)) { // Check if newChar contains the kanji
+            foundWords.push(word);
+            fs.appendFile('./output/kanji.txt', word + '\n');
+            stdout.write(chalk.bold.greenBright('Successfully ') + 'sorted ' + chalk.bold.red(`${kanjiCounter}`) + ' kanji' + ' from ' + chalk.bold.red(`${wordsArray.length - 1}`) + ' words\r');
+            break; // Exit the loop once a match is found in the word
+          }
+        }
+      }
+    }
+
+    const kanjiFile = (await fs.readFile('./output/kanji.txt', 'utf-8')).split('\n');
+    console.log(chalk.bold.red(`\n\n${foundWords.length} `) + ("words have been written to ") + chalk.bold.red("'kanji.txt'") + ".\n");
+    for (let i = 3; i > 0; i--) {
+      console.log(chalk.bold.red(i));
+      if (i === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        startProgram();
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+
+  }
+
+}
+
+async function clearFiles() {
+  console.clear();
+  trulyClear = false;
+  rl.question(chalk.bold.red('Are you sure ') + 'you would like to clear ' + chalk.red.bold('all ') + 'files?\n' + chalk.bold.greenBright('\n1: Yes') + chalk.bold.red('\n2: No\n'), async (answer) => {
+    switch (answer) {
+      case '1':
+        trulyClear = true
+        break;
+      case '2':
+        startProgram();
+        break;
+      default:
+        console.clear()
+        console.log('Only enter ' + chalk.bold.greenBright("1") + " or " + chalk.bold.red("2" + '!\n'));
+        for (let i = 3; i > 0; i--) {
+          console.log(chalk.bold.red(i));
+          if (i === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            await clearFiles();
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
+        }
+        break;
+    }
+    if (trulyClear == true) {
+      console.clear();
+      try {
+        let counter = 0;
+        const outputFiles = ['words.txt', 'frequency.txt', 'kanji.txt'];
+        fs.writeFile('./output/words.txt', '');
+        fs.writeFile('./output/frequency.txt', '');
+        fs.writeFile('./output/kanji.txt', '');
+        for (const file of outputFiles) {
+          counter++;
+          stdout.write(('\rCleared ') + chalk.bold.red(`${counter}`) + ' of ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
+        }
+
+        if (counter === outputFiles.length) {
+          console.log(chalk.bold.greenBright('\nSuccessfully ') + 'cleared all ' + chalk.bold.red(`${outputFiles.length}`) + ' files.');
+          for (let i = 3; i > 0; i--) {
+            console.log(chalk.bold.red(i));
+            if (i === 1) {
+              await new Promise((resolve) => setTimeout(resolve, 200));
+              startProgram();
+            } else {
+              await new Promise((resolve) => setTimeout(resolve, 300));
+            }
+          }
+        }
+
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+  })
+}
+
+async function writeKanji(rubyWords) {
+  if (rubyWords.length === 0) {
+    console.log(`No kanji words to write.`);
+  } else {
+    try {
+      // Prepare the data to be appended with a newline
+      const newData = rubyWords.join("\n") + "\n";
+
+      // Append the data to the file asynchronously
+      const outputFilePath = "./output/words.txt";
+      await fs.appendFile(outputFilePath, newData);
+
+      //console.log(``);
+    } catch (error) {
+      console.error(`Error writing to file: ${error}`);
+      process.exit();
+    }
+  }
+}
