@@ -15,7 +15,7 @@
 
 **Using Your Own frequency Dictonary(s)**:
 + Download one fIom [here](https://drive.google.com/drive/folders/1g1drkFzokc8KNpsPHoRmDJ4OtMTWFuXi) *or any other ones that are compatible with* [Yomichan](https://chrome.google.com/webstore/detail/yomichan/ogmnaimimemjmbakcfefmnahgdfhfami).
-+ copy **index.json** into the **yomichan_dicts** folder *(Make sure to rename index to the name of the dictionary)*. You don't need the meta banks.
++ copy **index.json** into the **yomichan_dicts** folder *(Make sure to rename **index.json** to the **name of the dictionary**)*. You don't need the meta banks.
 ```
 ├── Anime & J-Drama Frequency Dictionary
 │ ├── index.json 
