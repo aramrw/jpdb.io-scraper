@@ -353,7 +353,7 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
 
             // starting scraping
             const totalPages = Math.min(Number(pageAmount), 100);
-            const parallelTasks = []; // Array to store the parallel scraping tasks
+            //const parallelTasks = []; // Array to store the parallel scraping tasks
             let trackPages = 0;
 
             console.clear();
@@ -363,12 +363,11 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
             newVocabOffset = newVocabOffset - 50;
             for (let i = 0; i < totalPages; i++) {
               newVocabOffset = newVocabOffset + 50;
-              const promise = scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName);
+              await scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName);
+              console.clear();
+              console.log('Page ' + chalk.bold.green(`${i + 1}`) + ' of ' + chalk.bold.blue(`${totalPages}`) + '...\n');
               finalEntryNumber = newVocabOffset;
-              parallelTasks.push(promise);
             }
-
-            await Promise.all(parallelTasks);
 
             // end scraping and log results
             console.log(chalk.bold.greenBright(`Successfully `) + "scraped all " + chalk.bold.greenBright(`${totalPages}`) + " pages.");
@@ -446,7 +445,6 @@ async function foundcustomUrl(customUrl, finalEntryNumber) {
       })
     }
   }
-
 
   function scrapeSameLinkAgain(urlName, finalEntryNumber, frequencyCheckComplete, newVocabOffset, browser, newCustomUrl, page, paragraphNumber, coloredNumber) {
     pageCounter = 0;
@@ -527,8 +525,10 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) 
     linkExists = true;
   } else {
     for (const link of linksFile) {
+
       if (link !== "") {
         const splitLinks = link.split(/_|]/);
+
         if (splitLinks[1].trim() == urlName.trim()) {
           linkExists = true;
           break;
@@ -537,8 +537,6 @@ async function scrapeCustomLink(newVocabOffset, newCustomUrl, browser, urlName) 
     }
   }
 
-  //console.log(linksFileCounter)
-  //process.exit();
 
   if (linkExists == false) {
     if ((linksFile.length - 1) % 8 === 0) {
